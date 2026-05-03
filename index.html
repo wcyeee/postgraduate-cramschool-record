@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>補習班課程管理系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --surface: #242424;
+    --surface2: #2e2e2e;
+    --border: #404040;
+    --accent: #b0b0b0;
+    --accent2: #888888;
+    --accent3: #888888;
+    --accent4: #888888;   
+    --accent5: #cc6666;  
+    --text: #ececec;
+    --text2: #b5b5b5;
+    --text3: #868686;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* Layout */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0; height: 52px;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 24px; gap: 4px; z-index: 100;
+  }
+  .topnav-logo { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; color: var(--accent); margin-right: 20px; white-space: nowrap; }
+  .nav-item {
+    display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px;
+    cursor: pointer; color: var(--text2); font-size: 13px; transition: all 0.2s;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(255,255,255,0.1); color: var(--accent); }
+  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .main { margin-left: 0; flex: 1; padding: 80px 32px 28px; }
+  .page { display: none; } .page.active { display: block; }
+
+  /* Header */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .page-title { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600; }
+  .page-subtitle { font-size: 13px; color: var(--text3); margin-top: 2px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px;
+    font-size: 13.5px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #888; transform: translateY(-1px); }
+  .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-danger { background: rgba(248,113,113,0.15); color: var(--accent5); border: 1px solid rgba(248,113,113,0.2); }
+  .btn-danger:hover { background: rgba(248,113,113,0.25); }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card-title { font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Stats row */
+  .stats-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; cursor: pointer; transition: all 0.2s;
+  }
+  .stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .stat-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+  .stat-name { font-size: 12.5px; font-weight: 600; color: var(--text); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-bar-bg { height: 4px; background: var(--surface2); border-radius: 2px; }
+  .stat-bar { height: 4px; border-radius: 2px; transition: width 0.8s ease; }
+  .stat-pct { font-size: 11px; color: var(--text2); margin-top: 5px; }
+
+  /* Calendar */
+  .calendar-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 20px; margin-bottom: 24px; }
+  .calendar-grid { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .cal-month { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; }
+  .cal-nav { display: flex; gap: 8px; }
+  .cal-nav-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .cal-nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .cal-days-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+  .cal-day-label { text-align: center; font-size: 11px; color: var(--text3); padding: 4px 0; }
+  .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day {
+    aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding: 4px 2px; border-radius: 6px; cursor: pointer; position: relative; transition: background 0.15s;
+    min-height: clamp(52px, 9vw, 80px);
+  }
+  .cal-day:hover { background: var(--surface2); }
+  .cal-day.other-month .cal-day-num { color: var(--text3); }
+  .cal-day.today { background: rgba(246, 247, 248, 0.12); }
+  .cal-day.today .cal-day-num { color: var(--accent); font-weight: 700; }
+  .cal-day-num { font-size: 12px; font-weight: 500; color: var(--text); }
+  .cal-dots { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; margin-top: 2px; }
+  .cal-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  /* Side panel */
+  .side-panel { display: flex; flex-direction: column; gap: 14px; }
+  .upcoming-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+  .event-item { background: var(--surface2); border-radius: 8px; padding: 10px 12px; border-left: 3px solid var(--accent); }
+  .event-time { font-size: 11px; color: var(--text3); margin-bottom: 3px; }
+  .event-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .event-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* Progress section */
+  .progress-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .progress-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .progress-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .progress-course-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .progress-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .progress-stats { display: flex; gap: 16px; margin-bottom: 12px; }
+  .progress-stat-val { font-size: 18px; font-weight: 700; }
+  .progress-stat-label { font-size: 11px; color: var(--text3); }
+  .progress-bar-bg { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .progress-bar { height: 100%; border-radius: 3px; transition: width 1s ease; }
+  .last-lesson { font-size: 12px; color: var(--text3); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6); animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .modal-close { width: 30px; height: 30px; border-radius: 6px; border: none; background: transparent; color: var(--text2); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+  .modal-close:hover { background: var(--surface2); }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer { padding: 16px 24px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+
+  /* Form */
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+  .form-control {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; color: var(--text); font-size: 13.5px; outline: none; transition: border-color 0.2s; font-family: inherit;
+  }
+  .form-control:focus { border-color: var(--accent); }
+  select.form-control option { background: var(--surface2); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Lesson list */
+  .lessons-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .lessons-list { display: flex; flex-direction: column; gap: 8px; }
+  .lesson-item {
+    background: var(--surface2); border-radius: 8px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px; border: 1px solid transparent; transition: border-color 0.2s;
+  }
+  .lesson-item:hover { border-color: var(--border); }
+  .lesson-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .lesson-info { flex: 1; }
+  .lesson-name { font-size: 13.5px; font-weight: 500; color: var(--text); }
+  .lesson-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .lesson-actions { display: flex; gap: 6px; }
+
+  /* Schedule page */
+  .schedule-filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-btn { padding: 6px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text2); transition: all 0.2s; font-family: inherit; }
+  .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .schedule-list { display: flex; flex-direction: column; gap: 10px; }
+  .schedule-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 18px; display: flex; align-items: center; gap: 16px;
+  }
+  .schedule-time-block { text-align: center; min-width: 80px; }
+  .schedule-date { font-size: 13px; font-weight: 600; color: var(--text); }
+  .schedule-time { font-size: 12px; color: var(--text3); }
+  .schedule-divider { width: 1px; height: 40px; background: var(--border); }
+  .schedule-info { flex: 1; }
+  .schedule-course { font-size: 14px; font-weight: 600; color: var(--text); }
+  .schedule-detail { font-size: 12px; color: var(--text2); margin-top: 3px; }
+  .schedule-status { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .status-scheduled { background: rgba(160,160,160,0.15); color: var(--accent); }
+  .status-completed { background: rgba(140,140,140,0.2); color: var(--text2); }
+
+  /* Colors per course */
+  .c0 { --cc: #6c8ef7; } .c1 { --cc: #a78bfa; } .c2 { --cc: #34d399; } 
+  .c3 { --cc: #f59e0b; } .c4 { --cc: #f87171; } .c5 { --cc: #38bdf8; }
+
+  /* Notification */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 18px; font-size: 13.5px; box-shadow: var(--shadow);
+    z-index: 9999; transform: translateY(80px); opacity: 0; transition: all 0.3s;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 3px solid #888; }
+  .toast.error   { border-left: 3px solid var(--accent5); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: 10px; padding: 4px; margin-bottom: 20px; width: fit-content; }
+  .tab { padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text2); transition: all 0.2s; }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Loading */
+  .loading { text-align: center; padding: 40px; color: var(--text3); font-size: 14px; }
+  .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state { text-align: center; padding: 40px; color: var(--text3); }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; }
+
+  /* Segment input */
+  .segment-input { display: flex; gap: 8px; align-items: center; }
+  .segment-label { font-size: 13px; color: var(--text2); white-space: nowrap; }
+  
+  /* Day detail popup */
+  .day-popup {
+    position: absolute; z-index: 200; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; min-width: 200px; box-shadow: var(--shadow);
+    left: 50%; transform: translateX(-50%); top: 100%; margin-top: 4px;
+  }
+  .cal-day { position: relative; }
+
+  @media (max-width: 1024px) {
+    .stats-row { grid-template-columns: repeat(3, 1fr); }
+    .progress-grid { grid-template-columns: repeat(2, 1fr); }
+    .calendar-wrap { grid-template-columns: 1fr; }
+    .side-panel { flex-direction: row; }
+    .side-panel .card { flex: 1; }
+    .main { padding: 72px 20px 24px; }
+  }
+  @media (max-width: 480px) {
+    /* Topnav 改成可捲動 */
+    .topnav {
+      padding: 0 12px;
+      gap: 2px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .topnav::-webkit-scrollbar { display: none; }
+    .topnav-logo { font-size: 12px; margin-right: 8px; flex-shrink: 0; }
+    .nav-item { padding: 6px 10px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+
+    /* 主內容 */
+    .main { padding: 64px 12px 20px; }
+    .page-title { font-size: 18px; }
+    .page-header { flex-wrap: wrap; gap: 10px; }
+
+    /* 統計卡片：2欄 */
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+
+    /* 日曆 + 側欄：直排 */
+    .calendar-wrap { grid-template-columns: 1fr; }
+    .cal-day { min-height: 44px; }
+    .cal-day-num { font-size: 11px; }
+
+    /* 進度卡片：1欄 */
+    .progress-grid { grid-template-columns: 1fr; }
+
+    /* 排課篩選：可橫向捲動 */
+    .schedule-filters { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+    .schedule-filters::-webkit-scrollbar { display: none; }
+    .filter-btn { white-space: nowrap; flex-shrink: 0; }
+
+    /* 排課列表 */
+    .schedule-item { flex-wrap: wrap; gap: 10px; }
+    .schedule-divider { display: none; }
+
+    /* Modal 全螢幕 */
+    .modal { max-width: 100% !important; max-height: 95vh; border-radius: 16px 16px 0 0; }
+    .modal-overlay { align-items: flex-end; padding: 0; }
+
+    /* form row 改單欄 */
+    .form-row { grid-template-columns: 1fr; }
+
+    /* 課程記錄列 */
+    .lesson-item { flex-wrap: wrap; }
+    .lesson-actions { width: 100%; justify-content: flex-end; margin-top: 4px; }
+  }
+  .material-symbols-rounded { font-size: inherit; vertical-align: middle; line-height: 1; user-select: none; }
+</style>
+
+</head>
+
+
+
+<body>
+<div class="app">
+  
+  <div class="topnav">
+    <div class="topnav-logo" style="display:flex;align-items:center;gap:6px">
+      <span class="material-symbols-rounded" style="font-size:18px">school</span>
+      <div>補習班</div>
+    </div>
+      <div class="nav-item active" data-page="home" onclick="navigate('home')">
+        首頁
+      </div>
+    <div class="nav-item" data-page="lessons" onclick="navigate('lessons')">課程記錄</div>
+    <div class="nav-item" data-page="schedule" onclick="navigate('schedule')">排課管理</div>
+  </div>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Home Page -->
+    <div id="page-home" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">總覽</div>
+          <div class="page-subtitle">本月課程進度與行程</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost" onclick="openRecordModal()">+ 記錄上課</button>
+          <button class="btn btn-primary" onclick="openScheduleModal()">+ 新增排課</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div id="stats-row" class="stats-row"></div>
+
+      <!-- Calendar + Upcoming -->
+      <div class="calendar-wrap">
+        <div class="calendar-grid">
+          <div class="cal-header">
+            <div class="cal-month" id="cal-month-label"></div>
+            <div class="cal-nav">
+              <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+              <button class="cal-nav-btn" onclick="calNext()">›</button>
+            </div>
+          </div>
+          <div class="cal-days-header">
+            <div class="cal-day-label">日</div><div class="cal-day-label">一</div>
+            <div class="cal-day-label">二</div><div class="cal-day-label">三</div>
+            <div class="cal-day-label">四</div><div class="cal-day-label">五</div>
+            <div class="cal-day-label">六</div>
+          </div>
+          <div id="cal-days" class="cal-days"></div>
+        </div>
+        <div class="side-panel">
+          <div class="card">
+            <div class="card-title">即將上課</div>
+            <div id="upcoming-list" class="upcoming-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:15px;font-weight:600">課程進度</div>
+      </div>
+      <div id="progress-grid" class="progress-grid"></div>
+    </div>
+
+    <!-- Lessons Page -->
+    <div id="page-lessons" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">課程記錄</div>
+          <div class="page-subtitle">記錄每堂課的上課情況</div>
+        </div>
+        <button class="btn btn-primary" onclick="openRecordModal()">+ 記錄上課</button>
+      </div>
+      <div class="lessons-header">
+        <select id="lesson-course-filter" class="form-control" style="width:200px"></select>
+      </div>
+      <div id="lessons-list" class="lessons-list"></div>
+    </div>
+
+    <!-- Schedule Page -->
+    <div id="page-schedule" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">排課管理</div>
+          <div class="page-subtitle">安排與追蹤課程時程</div>
+        </div>
+        <button class="btn btn-primary" onclick="openScheduleModal()">+ 新增排課</button>
+      </div>
+      <div class="schedule-filters">
+        <button class="filter-btn active" data-filter="all" onclick="setScheduleFilter('all')">全部</button>
+        <button class="filter-btn" data-filter="upcoming" onclick="setScheduleFilter('upcoming')">即將上課</button>
+        <button class="filter-btn" data-filter="completed" onclick="setScheduleFilter('completed')">已完成</button>
+        <span style="width:1px;background:var(--border);height:28px;display:inline-block;margin:0 4px"></span>
+        <button class="filter-btn" data-filter="ds" onclick="setScheduleFilter('ds')">資料結構</button>
+        <button class="filter-btn" data-filter="co" onclick="setScheduleFilter('co')">計算機概論</button>
+        <button class="filter-btn" data-filter="net" onclick="setScheduleFilter('net')">網際網路概論</button>
+        <button class="filter-btn" data-filter="db" onclick="setScheduleFilter('db')">資料庫</button>
+        <button class="filter-btn" data-filter="mis" onclick="setScheduleFilter('mis')">MIS</button>
+        <button class="filter-btn" data-filter="ai" onclick="setScheduleFilter('ai')">AI</button>
+      </div>
+      <div id="schedule-list" class="schedule-list"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Record Modal -->
+<div id="modal-record" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-record')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">記錄上課進度</div>
+      <button class="modal-close" onclick="closeModal('modal-record')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">課程種類</label>
+        <select id="rec-course" class="form-control"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">上到哪一堂</label>
+        <select id="rec-lesson" class="form-control"></select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">完成狀態</label>
+        <select id="rec-status" class="form-control">
+          <option value="done">已完成整堂</option>
+          <option value="partial">上到一半</option>
+        </select>
+      </div>
+      <div id="rec-partial-row" style="display:none" class="form-row">
+        <div class="form-group">
+          <label class="form-label">上到（分鐘）</label>
+          <input type="number" id="rec-partial-min" class="form-control" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">上到（秒）</label>
+          <input type="number" id="rec-partial-sec" class="form-control" value="0" min="0" max="59">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">上課日期</label>
+          <input type="date" id="rec-date" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">上課時間</label>
+          <input type="time" id="rec-time" class="form-control">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">備注（可選）</label>
+        <input type="text" id="rec-note" class="form-control" placeholder="例：上到第30分鐘暫停">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-record')">取消</button>
+      <button class="btn btn-primary" id="save-record">儲存記錄</button>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Modal -->
+<div id="modal-schedule" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-schedule')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">新增排課</div>
+      <button class="modal-close" onclick="closeModal('modal-schedule')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">課程種類</label>
+        <select id="sch-course" class="form-control"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">排課日期</label>
+          <input type="date" id="sch-date" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">上課時間</label>
+          <input type="time" id="sch-time" class="form-control">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">上課方式</label>
+        <div class="tabs" style="margin-bottom:0">
+          <div class="tab mode-tab active" data-mode="range" onclick="setSchMode('range')">按堂數</div>
+          <div class="tab mode-tab" data-mode="minutes" onclick="setSchMode('minutes')">按分鐘</div>
+        </div>
+      </div>
+      <div id="sch-range-row" class="form-row">
+        <div class="form-group">
+          <label class="form-label">從第幾堂開始</label>
+          <select id="sch-from" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">上到第幾堂</label>
+          <select id="sch-to" class="form-control"></select>
+        </div>
+      </div>
+      <div id="sch-minutes-row" style="display:none">
+        <div class="form-group">
+          <label class="form-label">上課分鐘數</label>
+          <input type="number" id="sch-minutes" class="form-control" value="90" min="15" step="15">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">備注（可選）</label>
+        <input type="text" id="sch-note" class="form-control" placeholder="例：重點複習、考前衝刺">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-schedule')">取消</button>
+      <button class="btn btn-primary" id="save-schedule">儲存排課</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day Detail Modal -->
+<div id="modal-day" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-day')">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title" id="day-detail-date"></div>
+      <button class="modal-close" onclick="closeModal('modal-day')">×</button>
+    </div>
+    <div class="modal-body" id="day-detail-list"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // ==================== Firebase Config ====================
+  // 請替換成你自己的 Firebase 配置
+  const firebaseConfig = {
+    apiKey: "AIzaSyCxPMuZPqxnU5bNbLjnRVk57Yxt5xz4VSY",
+    authDomain: "postgraduate-cramschool.firebaseapp.com",
+    projectId: "postgraduate-cramschool",
+    storageBucket: "postgraduate-cramschool.firebasestorage.app",
+    messagingSenderId: "142586967458",
+    appId: "1:142586967458:web:97ab835f932d3bd6ec6efb",
+    measurementId: "G-Y7GY1SGHWX"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ==================== Course Data ====================
+  const COURSES = [
+    { id: 'ds', name: '資料結構', total: 69, color: 0, hours: 116 },
+    { id: 'co', name: '計算機概論', total: 76, color: 1, hours: 136 },
+    { id: 'net', name: '網際網路概論', total: 11, color: 2, hours: 13 },
+    { id: 'db', name: '資料庫', total: 15, color: 3, hours: 17 },
+    { id: 'mis', name: 'MIS', total: 28, color: 4, hours: 56 },
+    { id: 'ai', name: 'AI', total: 26, color: 5, hours: 30 },
+  ];
+
+  const LESSONS = {
+    'ds': ["資料結構部分-參考書籍","考題來源-數學類別","二項式係數","Permutation Print","效能分析","例題解析","Questions1","p.24","漸進式符號：Asymptotic notation","展開帶入法","例題解析","例題2","推疊與柱列","Stack permutations","例題解析","Infix轉Postfix之Algo","括號配對-例2","Queue的製作","Circular Array 作 Queue","利用Stack製作Queue","(八)樹的分支度","例題解析","B.T.之表示方法","例5","B.T. Traversal之應用","Tree Sorting","例題解析","Heap","Build a Heap","例題解析","Disjoint sets定義","FIND(i) with collapsing Rule","引線二元樹","例題解析","SMMH","Huffman Algo","Algo補充","AVL Tree Del.x","110中山資管資料結構","DELETE X IN A B TREE OF ORDER M","DELETE X IN A B TREE OF ORDER M","INSERT X IN THE RB TREE","RB-Tree","TABLE RESULT","OBST","BINOMIAL TREE","SEARCH AND SORT","Worst case","SELECTION SORT","例子","演算法版本-QUICK SORT","傳統方法","LSD RADIX SORT分析","Counting Sort","問題1","相鄰多元串列","演算法深度追蹤","判斷無向圖是否CONNECTED","MINIMUM SPANNING TREE (MST)","SOLLINS ALGORITHM","DIJKSTRAS ALGORITHM","求All pans of vertex 之 SPL","ARTICULATION POINT","HOW TO FIND THE ARTICULATION POINTS","OVERFLOW 處理方法","Ch2 Array 與 Ch4 Link list","三維、四維....N維陣列","例題3、Circular link list (環狀)","Generalized list 之 recursive operations"],
+    'co': ["課程介紹","摩爾定律","運算元(operand)定址模式","cpu速度之評量方式與計算","Storage Hierarchy","時間，速率","數字系統","中正資工","補數","-3的二補數","Overflow (溢位)","一般型浮點數之值域","IEEE754特殊值以及值域","錯誤偵測碼","Hamming code","布林式子正規化表示方式","化簡SOP之步驟","UNIVERSAL GATES (COMPLETE GATE)","XOR GATE AND XNOR GATE 特性","例題解析","正反器","作業系統","SYSTEM TYPES","第四段","Real-Time system (即時系統)","INTERRUPTED I/O","DMA (Direct Memory Access)","SYSTEM CALLS","111中山資管計概","作業系統部分CH4","Process之STD","I/O-bound and CPU-bound process","Non-Preemptive 與 Preemptive 排班","PRIORITY SCHEDULING","SCHEDULABLE","Child process佔用的Address space","例1","破除No Preemption條件","STEPS OF BANKER ALGORITHM","Contiguous Memory Allocation","Translate a logical address generated by the CPU to a physical addres","A two-level page-table scheme","虛擬記憶體","LRU-Approximation Page Replacement","Working Model 工作模型","Seek Time","Linked Allocation","Improvement of Reliability via Redundancy","outline","彼得森解法","程式語言-系統程式","程式語言-結構化程式","程式語言-指標變數 P17","程式語言-雙重指標","程式語言-p.36","程式語言-C++","程式語言-Call by reference 傳參考","程式語言-Person","程式語言-例外處理的機制","程式語言-例題解析 P36","程式語言-p.55","程式語言-ex12","資結-CH1-AlgorithmSpecification","資結-對數系列","資結-上課筆記","資結-四.比較表-上課筆記","資結-四infix轉postfix.piefix","資結-CircularLinkList","資結-CompleteBT上課筆記","資結-Heap堆積上課筆記","資結-定理-上課筆記","資結-四DeleteX上課筆記","資結-Sorting上課筆記","資結-Morg sort-合併排序","資結-Adjacency Lists表示-相鄰串列","資結-AlgoFloyd-warshall上課筆記"],
+    'net': ["簡介","網路層","數據機","數據通訊方式","終端節點隱藏問題","藍芽技術","子網路","IPV6","傳輸協定","網路管理","攻擊方式"],
+    'db': ["第一篇：資料庫系統概念","資料架構的發展","(1) 資料處理模式的演進","(三)、關聯式資料庫","(4) 複合鍵 / 組合鍵","關聯式代數的特性","強實體 / 實體類型","自然語言句型","實體關聯圖轉換成關聯表綱要","正規化的概念","第三階正規化型式","正規化練習","查詢紀錄","where子句的算數運算子","NoSQL定義與歷史"],
+    'mis': ["開課","資訊系統","p.15","p.27","Class3-1","Class3-2","寫申論題的步驟","例題解析","p.71","p.146","p.90","3H:2L","採用IT主要的目的之一","p.234","p.268","p.156","第五章 複習 P176","私有產業網路 P16","p.27","p.115","考研關鍵要素","p.79","第九章","p.223","CH11","p.138","CH12 資訊系統投資效益","何謂長尾理論與網路外部性"],
+    'ai': ["人工智慧基礎定義","人工智慧主要演算法","人工智慧衡量方法","(五)循環神經網路RNN","2.調整參數","2.提供範例","(3)提升法","5.文本分析","A.協同過濾演算法","2.行動設備","(2)文件報表","人工智慧","(三)產業應用","(4)防止金融犯罪","九、風險與威脅","一、AI導入主要流程","2.策略缺口分析","8.高階主管支持","目錄","AH","密碼保護","安全委外","邊界網路","(二)無線網路與企業內部的安全機制","(四)題型演練","交通大學-資管所34"],
+  };
+
+  const LESSON_DURATIONS = {
+    'ds': [6536,6128,7559,2956,7931,5907,7050,3299,6787,5493,6720,6180,7532,3559,7051,6839,6300,4486,6849,4603,7543,6017,7553,3034,6982,6359,6922,3401,7257,6322,6094,3873,7248,5711,7262,3916,7926,6188,6347,3280,6722,7064,7060,2849,6982,5815,6991,3348,7817,6415,9215,7495,3346,7917,7202,6332,3629,7370,6587,7466,5786,7474,1815,7007,5197,3785,7139,5311,7696],
+    'co': [6274,4225,8922,3104,7576,4453,7685,3436,7506,3739,7859,3450,7175,3788,7415,3930,8074,3382,7685,3402,7780,3161,7505,3602,7414,3753,7499,3683,7951,3324,7449,3988,7527,3620,7817,3718,7804,3480,7923,3755,7815,3463,7476,3496,7493,3693,7864,3249,7857,3684,5923,3937,5466,5328,5909,5256,5125,4248,5750,3900,5416,4510,13707,11270,14229,10703,14045,10381,14812,10940,13568,11837,14626,10835,14777,9164],
+    'net': [5420,3097,2641,2469,5715,4471,5278,2495,4991,4337,5375],
+    'db': [5548,4753,4061,2912,2731,5673,4800,2645,2512,3773,3702,3900,3406,5801,4673],
+    'mis': [6435,5568,6764,5451,6956,4450,6926,5248,6915,4173,7099,4961,6765,5700,6686,5412,7042,5061,6792,1977,6354,5314,5633,6064,6163,4511,6243,3795],
+    'ai': [5065,4825,4313,2599,2601,2575,5280,4344,3384,2550,3237,2886,5561,4287,2531,3123,3565,2850,5201,4661,3777,3485,4134,3901,3414,2341],
+  };
+
+  // ==================== State ====================
+  let state = {
+    records: [],     // { courseId, lessonIndex, date, time, minutes, note, id }
+    schedules: [],   // { courseId, date, time, minutes, fromLesson, toLesson, note, id, status }
+    currentMonth: new Date().getMonth(),
+    currentYear: new Date().getFullYear(),
+    activePage: 'home',
+    scheduleFilter: 'all',
+  };
+
+  // ==================== Firebase Helpers ====================
+  async function loadData() {
+    try {
+      const [recSnap, schSnap] = await Promise.all([
+        getDocs(collection(db, 'records')),
+        getDocs(collection(db, 'schedules'))
+      ]);
+      state.records = recSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      state.schedules = schSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderAll();
+    } catch(e) {
+      // Firebase not configured - use local demo data
+      console.warn('Firebase not configured, using local state');
+      renderAll();
+    }
+  }
+
+  async function saveRecord(data) {
+    try {
+      const ref = await addDoc(collection(db, 'records'), data);
+      state.records.push({ id: ref.id, ...data });
+    } catch(e) {
+      state.records.push({ id: 'local_' + Date.now(), ...data });
+    }
+    renderAll(); showToast('已記錄上課進度', 'success');
+  }
+
+  async function saveSchedule(data) {
+    try {
+      const ref = await addDoc(collection(db, 'schedules'), data);
+      state.schedules.push({ id: ref.id, ...data });
+    } catch(e) {
+      state.schedules.push({ id: 'local_' + Date.now(), ...data });
+    }
+    renderAll(); showToast('📅 排課成功', 'success');
+  }
+
+  async function deleteItem(type, id) {
+    if (type === 'record') {
+      state.records = state.records.filter(r => r.id !== id);
+      try { await deleteDoc(doc(db, 'records', id)); } catch(e) {}
+    } else {
+      state.schedules = state.schedules.filter(s => s.id !== id);
+      try { await deleteDoc(doc(db, 'schedules', id)); } catch(e) {}
+    }
+    renderAll(); showToast('已刪除', 'success');
+  }
+
+  async function markScheduleComplete(id) {
+    const s = state.schedules.find(x => x.id === id);
+    if (!s) return;
+    s.status = 'completed';
+    try { await updateDoc(doc(db, 'schedules', id), { status: 'completed' }); } catch(e) {}
+    renderAll(); showToast('標記完成', 'success');
+  }
+
+  // ==================== Render ====================
+  function renderAll() {
+    renderStats();
+    renderCalendar();
+    renderUpcoming();
+    renderProgress();
+    renderLessons();
+    renderSchedules();
+  }
+
+  function getCourseColor(idx) {
+    const colors = ['#6c8ef7','#a78bfa','#34d399','#f59e0b','#f87171','#38bdf8'];
+    return colors[idx] || colors[0];
+  }
+
+  function getLastLesson(courseId) {
+    const recs = state.records.filter(r => r.courseId === courseId).sort((a,b) => b.lessonIndex - a.lessonIndex);
+    return recs[0] || null;
+  }
+
+  function renderStats() {
+    const el = document.getElementById('stats-row');
+    el.innerHTML = COURSES.map((c, i) => {
+      const last = getLastLesson(c.id);
+      const done = last ? last.lessonIndex + 1 : 0;
+      const pct = Math.round(done / c.total * 100);
+      const color = getCourseColor(c.color);
+      return `<div class="stat-card" onclick="goToProgress('${c.id}')">
+        <div class="stat-label">課程進度</div>
+        <div class="stat-name" title="${c.name}">${c.name}</div>
+        <div class="stat-bar-bg"><div class="stat-bar" style="width:${pct}%;background:${color}"></div></div>
+        <div class="stat-pct">${done}/${c.total} (${pct}%)</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderCalendar() {
+    const { currentMonth: m, currentYear: y } = state;
+    const months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+    document.getElementById('cal-month-label').textContent = `${y} 年 ${months[m]}`;
+
+    const firstDay = new Date(y, m, 1).getDay();
+    const daysInMonth = new Date(y, m+1, 0).getDate();
+    const today = new Date();
+
+    // Build event map
+    const evMap = {};
+    [...state.records, ...state.schedules].forEach(item => {
+      if (!item.date) return;
+      const d = item.date.split('T')[0];
+      if (!evMap[d]) evMap[d] = [];
+      evMap[d].push(item);
+    });
+
+    let html = '';
+    const startPad = firstDay;
+    const prevDays = new Date(y, m, 0).getDate();
+    for (let i = startPad - 1; i >= 0; i--) {
+      html += `<div class="cal-day other-month"><span class="cal-day-num">${prevDays - i}</span></div>`;
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isToday = d === today.getDate() && m === today.getMonth() && y === today.getFullYear();
+      const events = evMap[dateStr] || [];
+      const eventTags = events.slice(0, 2).map(ev => {
+      const c = COURSES.find(c2 => c2.id === ev.courseId);
+      const color = c ? getCourseColor(c.color) : '#6c8ef7';
+      const isRecord = state.records.includes(ev);
+      const label = c?.name?.slice(0,4) || '';
+      const time = ev.time ? ev.time.slice(0,5) : '';
+      return `<div style="background:${color}22;color:${color};font-size:10.5px;border-radius:3px;padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;margin-top:2px;font-weight:500">${isRecord?'<span class="material-symbols-rounded" style="font-size:10px;vertical-align:middle">check</span>':''} ${label} ${time}</div>`;
+    }).join('');
+      html += `<div class="cal-day${isToday?' today':''}" onclick="showDayDetail('${dateStr}')">
+        <span class="cal-day-num">${d}</span>
+        ${eventTags}
+      </div>`;
+    }
+    const remaining = 42 - startPad - daysInMonth;
+    for (let d = 1; d <= remaining; d++) {
+      html += `<div class="cal-day other-month"><span class="cal-day-num">${d}</span></div>`;
+    }
+    document.getElementById('cal-days').innerHTML = html;
+  }
+
+  function renderUpcoming() {
+    const today = new Date().toISOString().split('T')[0];
+    const upcoming = state.schedules
+      .filter(s => s.date >= today && s.status !== 'completed')
+      .sort((a,b) => a.date.localeCompare(b.date))
+      .slice(0, 8);
+
+    const el = document.getElementById('upcoming-list');
+    if (!upcoming.length) {
+      el.innerHTML = '<div class="empty-state"><span class="material-symbols-rounded empty-icon" style="font-size:36px">calendar_today</span><div class="empty-text">暫無排課</div></div>';
+      return;
+    }
+    el.innerHTML = upcoming.map(s => {
+      const c = COURSES.find(c2 => c2.id === s.courseId);
+      const color = c ? getCourseColor(c.color) : '#6c8ef7';
+      const dateStr = formatDate(s.date);
+      return `<div class="event-item" style="border-left-color:${color}">
+        <div class="event-time">${dateStr} ${s.time || ''}</div>
+        <div class="event-name">${c?.name || ''}</div>
+        <div class="event-meta">${s.minutes ? s.minutes+'分鐘' : ''} ${s.fromLesson !== undefined ? `第${s.fromLesson+1}堂` : ''}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderProgress() {
+    const el = document.getElementById('progress-grid');
+    el.innerHTML = COURSES.map((c, i) => {
+      const last = getLastLesson(c.id);
+      const done = last ? last.lessonIndex + 1 : 0;
+      const pct = Math.round(done / c.total * 100);
+      const color = getCourseColor(c.color);
+      const lastDate = last ? formatDate(last.date) : '尚未開始';
+      const lastLesson = last ? LESSONS[c.id]?.[last.lessonIndex] || '' : '';
+      return `<div class="progress-card">
+        <div class="progress-card-header">
+          <div>
+            <div class="progress-course-name">${c.name}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${c.hours}小時</div>
+          </div>
+          <div class="progress-badge" style="background:${color}20;color:${color}">${pct}%</div>
+        </div>
+        <div class="progress-stats">
+          <div class="progress-stat">
+            <div class="progress-stat-val" style="color:${color}">${done}</div>
+            <div class="progress-stat-label">已完成堂數</div>
+          </div>
+          <div class="progress-stat">
+            <div class="progress-stat-val">${c.total - done}</div>
+            <div class="progress-stat-label">剩餘堂數</div>
+          </div>
+        </div>
+        <div class="progress-bar-bg"><div class="progress-bar" style="width:${pct}%;background:${color}"></div></div>
+        <div class="last-lesson">
+          最後上課：${lastDate}<br>
+          ${lastLesson ? `<span style="color:var(--text2)">${lastLesson}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  let lessonFilter = 'all';
+  function renderLessons() {
+    const el = document.getElementById('lessons-list');
+    const filterCourse = document.getElementById('lesson-course-filter')?.value || 'all';
+    
+    let rows = [];
+    COURSES.forEach(c => {
+      if (filterCourse !== 'all' && c.id !== filterCourse) return;
+      const lessons = LESSONS[c.id] || [];
+      const recs = state.records.filter(r => r.courseId === c.id);
+      lessons.forEach((name, idx) => {
+        const rec = recs.find(r => r.lessonIndex === idx);
+        rows.push({ course: c, idx, name, rec });
+      });
+    });
+
+    if (!rows.length) {
+      el.innerHTML = '<div class="empty-state"><span class="material-symbols-rounded empty-icon" style="font-size:36px">menu_book</span><div class="empty-text">選擇課程查看堂數</div></div>';
+      return;
+    }
+
+
+    const color = (c) => getCourseColor(c.color);
+    el.innerHTML = rows.map(({ course: c, idx, name, rec }) => {
+      const statusText = rec
+        ? (rec.status === 'partial' && rec.partialAt != null
+            ? `<span class="material-symbols-rounded" style="font-size:13px">pause_circle</span> 上到 ${Math.floor(rec.partialAt/60)}分${rec.partialAt%60}秒 · ${formatDate(rec.date)}`
+            : `<span class="material-symbols-rounded" style="font-size:13px">check_circle</span> ${formatDate(rec.date)}`)
+        : '未上';
+      const dur = LESSON_DURATIONS[c.id]?.[idx];
+      const durStr = dur
+        ? `${Math.floor(dur/3600) ? Math.floor(dur/3600)+'時' : ''}${Math.floor((dur%3600)/60)}分`
+        : '';
+      return `
+        <div class="lesson-item">
+          <div class="lesson-num" style="background:${color(c)}20;color:${color(c)}">${idx+1}</div>
+          <div class="lesson-info">
+            <div class="lesson-name">${name}</div>
+            <div class="lesson-meta">${c.name}${durStr ? ' · '+durStr : ''} · ${statusText}</div>
+          </div>
+          <div class="lesson-actions">
+            ${!rec ? `<button class="btn btn-ghost btn-sm" onclick="openRecordModal('${c.id}',${idx})">記錄</button>` : 
+                    `<button class="btn btn-danger btn-sm" onclick="deleteItem('record','${rec.id}')">刪除</button>`}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderSchedules() {
+    const el = document.getElementById('schedule-list');
+    const today = new Date().toISOString().split('T')[0];
+    let items = [...state.schedules].sort((a,b) => b.date?.localeCompare(a.date || '') || 0);
+
+    if (state.scheduleFilter === 'upcoming') items = items.filter(s => s.date >= today && s.status !== 'completed');
+    else if (state.scheduleFilter === 'completed') items = items.filter(s => s.status === 'completed');
+    else if (state.scheduleFilter !== 'all') items = items.filter(s => s.courseId === state.scheduleFilter);
+
+    if (!items.length) {
+      el.innerHTML = '<div class="empty-state"><span class="material-symbols-rounded empty-icon" style="font-size:36px">event_note</span><div class="empty-text">暫無排課記錄</div></div>';
+      return;
+    }
+
+    el.innerHTML = items.map(s => {
+      const c = COURSES.find(c2 => c2.id === s.courseId);
+      const color = c ? getCourseColor(c.color) : '#6c8ef7';
+      const isCompleted = s.status === 'completed';
+      const dt = s.date ? new Date(s.date) : null;
+      const dateDisp = dt ? `${dt.getMonth()+1}/${dt.getDate()}` : '';
+      const dayNames = ['日','一','二','三','四','五','六'];
+      const dayDisp = dt ? `週${dayNames[dt.getDay()]}` : '';
+      const lessons = LESSONS[s.courseId] || [];
+      let detailStr = '';
+      if (s.fromLesson !== undefined && s.toLesson !== undefined) {
+        detailStr = `第${s.fromLesson+1}～${s.toLesson+1}堂`;
+      } else if (s.minutes) {
+        detailStr = `${s.minutes}分鐘`;
+      }
+      return `<div class="schedule-item">
+        <div class="schedule-time-block">
+          <div class="schedule-date" style="color:${color}">${dateDisp}</div>
+          <div class="schedule-time">${dayDisp}</div>
+          <div class="schedule-time">${s.time || ''}</div>
+        </div>
+        <div class="schedule-divider"></div>
+        <div class="schedule-info">
+          <div class="schedule-course">${c?.name || ''}</div>
+          <div class="schedule-detail">${detailStr} ${s.note ? '· '+s.note : ''}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="schedule-status ${isCompleted?'status-completed':'status-scheduled'}">${isCompleted?'完成':'排定'}</span>
+          ${!isCompleted ? `<button class="btn btn-ghost btn-sm" onclick="markScheduleComplete('${s.id}')">完成</button>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="deleteItem('schedule','${s.id}')">刪除</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ==================== Navigation ====================
+  window.navigate = function(page) {
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
+    document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+    document.getElementById('page-' + page)?.classList.add('active');
+    state.activePage = page;
+  };
+
+  window.goToProgress = function(courseId) {
+    navigate('lessons');
+    setTimeout(() => {
+      const sel = document.getElementById('lesson-course-filter');
+      if (sel) { sel.value = courseId; renderLessons(); }
+    }, 50);
+  };
+
+  // ==================== Calendar Nav ====================
+  window.calPrev = function() {
+    state.currentMonth--;
+    if (state.currentMonth < 0) { state.currentMonth = 11; state.currentYear--; }
+    renderCalendar();
+  };
+  window.calNext = function() {
+    state.currentMonth++;
+    if (state.currentMonth > 11) { state.currentMonth = 0; state.currentYear++; }
+    renderCalendar();
+  };
+
+  window.showDayDetail = function(dateStr) {
+    const events = [...state.records, ...state.schedules].filter(e => e.date?.startsWith(dateStr));
+    if (!events.length) return;
+    // Show in modal
+    const list = events.map(e => {
+      const c = COURSES.find(c2 => c2.id === e.courseId);
+      const isRecord = state.records.includes(e);
+      const lesson = isRecord && LESSONS[e.courseId]?.[e.lessonIndex];
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${c?.name}</div>
+        <div style="font-size:12px;color:var(--text2)">${isRecord 
+            ? '<span class="material-symbols-rounded" style="font-size:13px">check_circle</span> '+lesson 
+            : '<span class="material-symbols-rounded" style="font-size:13px">event</span> 排課'} ${e.time||''}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('day-detail-date').textContent = formatDate(dateStr);
+    document.getElementById('day-detail-list').innerHTML = list;
+    document.getElementById('modal-day').classList.add('open');
+  };
+
+  // ==================== Record Modal ====================
+  window.openRecordModal = function(courseId, lessonIndex) {
+    document.getElementById('rec-course').value = courseId || '';
+    updateRecLessonOptions(courseId, lessonIndex);
+    if (lessonIndex !== undefined) document.getElementById('rec-lesson').value = lessonIndex;
+    const now = new Date();
+    document.getElementById('rec-date').value = now.toISOString().split('T')[0];
+    document.getElementById('rec-time').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    document.getElementById('modal-record').classList.add('open');
+  };
+
+  function updateRecLessonOptions(courseId, selected) {
+    const sel = document.getElementById('rec-lesson');
+    const lessons = LESSONS[courseId] || [];
+    sel.innerHTML = lessons.map((l, i) => `<option value="${i}" ${i===selected?'selected':''}>${i+1}. ${l}</option>`).join('');
+  }
+
+  document.getElementById('rec-course').addEventListener('change', function() {
+    updateRecLessonOptions(this.value);
+  });
+
+  document.getElementById('rec-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  updateRecLessonOptions(COURSES[0].id);
+
+  document.getElementById('save-record').onclick = async function() {
+    const courseId = document.getElementById('rec-course').value;
+    const lessonIndex = parseInt(document.getElementById('rec-lesson').value);
+    const date = document.getElementById('rec-date').value;
+    const time = document.getElementById('rec-time').value;
+    const note = document.getElementById('rec-note').value;
+    const recStatus = document.getElementById('rec-status').value;
+    const partialMin = parseInt(document.getElementById('rec-partial-min').value) || 0;
+    const partialSec = parseInt(document.getElementById('rec-partial-sec').value) || 0;
+    
+    if (!courseId || isNaN(lessonIndex) || !date) { showToast('請填寫所有必要欄位', 'error'); return; }
+
+    // Remove existing record for same lesson
+    const existing = state.records.find(r => r.courseId === courseId && r.lessonIndex === lessonIndex);
+    if (existing) { await deleteItem('record', existing.id); }
+
+    await saveRecord({ courseId, lessonIndex, date, time, note,
+      status: recStatus,
+      partialAt: recStatus === 'partial' ? partialMin * 60 + partialSec : null
+    });
+    closeModal('modal-record');
+    document.getElementById('rec-note').value = '';
+  };
+
+  // ==================== Schedule Modal ====================
+  document.getElementById('sch-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+  function updateSchLessonOptions() {
+    const courseId = document.getElementById('sch-course').value;
+    const lessons = LESSONS[courseId] || [];
+    ['sch-from','sch-to'].forEach(id => {
+      document.getElementById(id).innerHTML = lessons.map((l,i) => `<option value="${i}">${i+1}. ${l}</option>`).join('');
+    });
+  }
+  document.getElementById('sch-course').addEventListener('change', updateSchLessonOptions);
+  updateSchLessonOptions();
+
+  window.openScheduleModal = function() {
+    const now = new Date();
+    document.getElementById('sch-date').value = now.toISOString().split('T')[0];
+    document.getElementById('sch-time').value = '09:00';
+    document.getElementById('modal-schedule').classList.add('open');
+  };
+
+  let schMode = 'range'; // 'range' or 'minutes'
+  window.setSchMode = function(mode) {
+    schMode = mode;
+    document.getElementById('sch-range-row').style.display = mode === 'range' ? 'grid' : 'none';
+    document.getElementById('sch-minutes-row').style.display = mode === 'minutes' ? 'block' : 'none';
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+  };
+
+  document.getElementById('save-schedule').onclick = async function() {
+    const courseId = document.getElementById('sch-course').value;
+    const date = document.getElementById('sch-date').value;
+    const time = document.getElementById('sch-time').value;
+    const note = document.getElementById('sch-note').value;
+    if (!courseId || !date) { showToast('請填寫必要欄位', 'error'); return; }
+
+    const data = { courseId, date, time, note, status: 'scheduled' };
+    if (schMode === 'range') {
+      data.fromLesson = parseInt(document.getElementById('sch-from').value);
+      data.toLesson = parseInt(document.getElementById('sch-to').value);
+    } else {
+      data.minutes = parseInt(document.getElementById('sch-minutes').value) || 60;
+    }
+    await saveSchedule(data);
+    closeModal('modal-schedule');
+    document.getElementById('sch-note').value = '';
+  };
+
+  // ==================== Utils ====================
+  window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); };
+  window.markScheduleComplete = markScheduleComplete;
+  window.deleteItem = deleteItem;
+  window.openRecordModal = openRecordModal;
+  window.openScheduleModal = openScheduleModal;
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  }
+
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => t.className = 'toast', 2800);
+  }
+  window.showToast = showToast;
+
+  // Schedule filter buttons
+  window.setScheduleFilter = function(f) {
+    state.scheduleFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+    renderSchedules();
+  };
+
+  // Lesson filter
+  document.getElementById('lesson-course-filter').innerHTML = `<option value="all">所有課程</option>` + COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('lesson-course-filter').addEventListener('change', renderLessons);
+
+  document.getElementById('rec-status').addEventListener('change', function() {
+    document.getElementById('rec-partial-row').style.display = this.value === 'partial' ? 'grid' : 'none';
+  });
+
+  // Init
+  loadData();
+  navigate('home');
+
+  
+</script>
+
+</body>
+
+
+
+</html>
