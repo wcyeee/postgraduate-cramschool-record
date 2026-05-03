@@ -92,9 +92,10 @@
   .cal-day-label { text-align: center; font-size: 11px; color: var(--text3); padding: 4px 0; }
   .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
   .cal-day {
-    aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-    padding: 4px 2px; border-radius: 6px; cursor: pointer; position: relative; transition: background 0.15s;
-    min-height: clamp(52px, 9vw, 80px);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding: 3px 2px; border-radius: 6px; cursor: pointer; position: relative; transition: background 0.15s;
+    min-height: clamp(44px, 9vw, 80px);
+    overflow: hidden;
   }
   .cal-day:hover { background: var(--surface2); }
   .cal-day.other-month .cal-day-num { color: var(--text3); }
@@ -158,6 +159,14 @@
   /* Lesson list */
   .lessons-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
   .lessons-list { display: flex; flex-direction: column; gap: 8px; }
+  /* 電腦版：課程記錄分組標題 */
+  .lesson-group-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0 6px; margin-top: 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px; font-weight: 600; color: var(--text2);
+  }
+  .lesson-group-header:first-child { margin-top: 0; }
   .lesson-item {
     background: var(--surface2); border-radius: 8px; padding: 12px 14px;
     display: flex; align-items: center; gap: 12px; border: 1px solid transparent; transition: border-color 0.2s;
@@ -242,6 +251,7 @@
     .main { padding: 72px 20px 24px; }
   }
   @media (max-width: 480px) {
+    .lessons-header { display: none; }
     /* Topnav 改成可捲動 */
     .topnav {
       padding: 0 12px;
@@ -264,8 +274,8 @@
 
     /* 日曆 + 側欄：直排 */
     .calendar-wrap { grid-template-columns: 1fr; }
-    .cal-day { min-height: 44px; }
-    .cal-day-num { font-size: 11px; }
+    .cal-day { min-height: 48px; overflow: hidden; }
+    .cal-day-num { font-size: 11px; line-height: 1.2; }
 
     /* 進度卡片：1欄 */
     .progress-grid { grid-template-columns: 1fr; }
@@ -284,7 +294,9 @@
     .modal-overlay { align-items: flex-end; padding: 0; }
 
     /* form row 改單欄 */
-    .form-row { grid-template-columns: 1fr; }
+    .modal-body { padding: 16px; }
+    .modal-footer { padding: 12px 16px; }
+    .form-control { font-size: 16px; } /* 防止 iOS 自動縮放 */
 
     /* 課程記錄列 */
     .lesson-item { flex-wrap: wrap; }
@@ -354,6 +366,10 @@
             <div class="card-title">即將上課</div>
             <div id="upcoming-list" class="upcoming-list"></div>
           </div>
+          <div class="card">
+            <div class="card-title">目前上課進度</div>
+            <div id="current-progress-list" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
         </div>
       </div>
 
@@ -373,7 +389,7 @@
         </div>
         <button class="btn btn-primary" onclick="openRecordModal()">+ 記錄上課</button>
       </div>
-      <div class="lessons-header">
+      <div id="lessons-filter-wrap" class="lessons-header">
         <select id="lesson-course-filter" class="form-control" style="width:200px"></select>
       </div>
       <div id="lessons-list" class="lessons-list"></div>
@@ -430,26 +446,21 @@
           <option value="partial">上到一半</option>
         </select>
       </div>
-      <div id="rec-partial-row" style="display:none" class="form-row">
-        <div class="form-group">
-          <label class="form-label">上到（分鐘）</label>
-          <input type="number" id="rec-partial-min" class="form-control" value="0" min="0">
-        </div>
-        <div class="form-group">
-          <label class="form-label">上到（秒）</label>
-          <input type="number" id="rec-partial-sec" class="form-control" value="0" min="0" max="59">
+      <div id="rec-partial-row" style="display:none" class="form-group">
+        <label class="form-label">上到幾時</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="number" id="rec-partial-hr" class="form-control" value="0" min="0" style="width:64px;padding:8px 6px;text-align:center">
+          <span style="color:var(--text3);font-size:12px">時</span>
+          <input type="number" id="rec-partial-min" class="form-control" value="0" min="0" max="59" style="width:64px;padding:8px 6px;text-align:center">
+          <span style="color:var(--text3);font-size:12px">分</span>
+          <input type="number" id="rec-partial-sec" class="form-control" value="0" min="0" max="59" style="width:64px;padding:8px 6px;text-align:center">
+          <span style="color:var(--text3);font-size:12px">秒</span>
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">上課日期</label>
-          <input type="date" id="rec-date" class="form-control">
-        </div>
-        <div class="form-group">
-          <label class="form-label">上課時間</label>
-          <input type="time" id="rec-time" class="form-control">
-        </div>
+      <div class="form-group">
+        <label class="form-label">上課日期</label>
+        <input type="date" id="rec-date" class="form-control">
       </div>
       <div class="form-group">
         <label class="form-label">備注（可選）</label>
@@ -486,27 +497,8 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">上課方式</label>
-        <div class="tabs" style="margin-bottom:0">
-          <div class="tab mode-tab active" data-mode="range" onclick="setSchMode('range')">按堂數</div>
-          <div class="tab mode-tab" data-mode="minutes" onclick="setSchMode('minutes')">按分鐘</div>
-        </div>
-      </div>
-      <div id="sch-range-row" class="form-row">
-        <div class="form-group">
-          <label class="form-label">從第幾堂開始</label>
-          <select id="sch-from" class="form-control"></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">上到第幾堂</label>
-          <select id="sch-to" class="form-control"></select>
-        </div>
-      </div>
-      <div id="sch-minutes-row" style="display:none">
-        <div class="form-group">
-          <label class="form-label">上課分鐘數</label>
-          <input type="number" id="sch-minutes" class="form-control" value="90" min="15" step="15">
-        </div>
+        <label class="form-label">上課分鐘數</label>
+        <input type="number" id="sch-minutes" class="form-control" value="90" min="15" step="15">
       </div>
       <div class="form-group">
         <label class="form-label">備注（可選）</label>
@@ -655,6 +647,7 @@
     renderProgress();
     renderLessons();
     renderSchedules();
+    renderCurrentProgress();
   }
 
   function getCourseColor(idx) {
@@ -755,6 +748,34 @@
     }).join('');
   }
 
+  function renderCurrentProgress() {
+    const el = document.getElementById('current-progress-list');
+    if (!el) return;
+    const items = COURSES.map(c => {
+      const last = getLastLesson(c.id);
+      if (!last) return null;
+      const lessonName = LESSONS[c.id]?.[last.lessonIndex] || '';
+      const color = getCourseColor(c.color);
+      let progressStr = '';
+      if (last.status === 'partial' && last.partialAt != null) {
+        const h = Math.floor(last.partialAt / 3600);
+        const m = Math.floor((last.partialAt % 3600) / 60);
+        const s = last.partialAt % 60;
+        progressStr = `${h ? h+'時' : ''}${m}分${s}秒`;
+      } else {
+        progressStr = '已完成整堂';
+      }
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:8px;border-left:3px solid ${color}">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:${color};margin-bottom:2px">${c.name}</div>
+          <div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lessonName}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${progressStr}</div>
+        </div>
+      </div>`;
+    }).filter(Boolean).join('');
+    el.innerHTML = items || '<div style="font-size:13px;color:var(--text3);padding:8px">尚無上課紀錄</div>';
+  }
+
   function renderProgress() {
     const el = document.getElementById('progress-grid');
     el.innerHTML = COURSES.map((c, i) => {
@@ -794,8 +815,47 @@
   let lessonFilter = 'all';
   function renderLessons() {
     const el = document.getElementById('lessons-list');
+    const isDesktop = window.innerWidth > 1024;
     const filterCourse = document.getElementById('lesson-course-filter')?.value || 'all';
-    
+
+    // 電腦版：不管 filter，一次全部展開（按課程分組）
+    if (isDesktop) {
+      let html = '';
+      COURSES.forEach(c => {
+        const lessons = LESSONS[c.id] || [];
+        const recs = state.records.filter(r => r.courseId === c.id);
+        const color = getCourseColor(c.color);
+        html += `<div class="lesson-group-header">
+          <span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0"></span>
+          ${c.name}
+        </div>`;
+        lessons.forEach((name, idx) => {
+          const rec = recs.find(r => r.lessonIndex === idx);
+          const statusText = rec
+            ? (rec.status === 'partial' && rec.partialAt != null
+                ? `<span class="material-symbols-rounded" style="font-size:13px">pause_circle</span> 上到 ${Math.floor(rec.partialAt/3600)?Math.floor(rec.partialAt/3600)+'時':''}${Math.floor((rec.partialAt%3600)/60)}分${rec.partialAt%60}秒 · ${formatDate(rec.date)}`
+                : `<span class="material-symbols-rounded" style="font-size:13px">check_circle</span> ${formatDate(rec.date)}`)
+            : '未上';
+          const dur = LESSON_DURATIONS[c.id]?.[idx];
+          const durStr = dur ? `${Math.floor(dur/3600)?Math.floor(dur/3600)+'時':''}${Math.floor((dur%3600)/60)}分` : '';
+          html += `<div class="lesson-item">
+            <div class="lesson-num" style="background:${color}20;color:${color}">${idx+1}</div>
+            <div class="lesson-info">
+              <div class="lesson-name">${name}</div>
+              <div class="lesson-meta">${durStr ? durStr+' · ' : ''}${statusText}</div>
+            </div>
+            <div class="lesson-actions">
+              ${!rec ? `<button class="btn btn-ghost btn-sm" onclick="openRecordModal('${c.id}',${idx})">記錄</button>` :
+                      `<button class="btn btn-danger btn-sm" onclick="deleteItem('record','${rec.id}')">刪除</button>`}
+            </div>
+          </div>`;
+        });
+      });
+      el.innerHTML = html;
+      return;
+    }
+
+    // 手機/平板：維持原本 filter 邏輯
     let rows = [];
     COURSES.forEach(c => {
       if (filterCourse !== 'all' && c.id !== filterCourse) return;
@@ -811,32 +871,26 @@
       el.innerHTML = '<div class="empty-state"><span class="material-symbols-rounded empty-icon" style="font-size:36px">menu_book</span><div class="empty-text">選擇課程查看堂數</div></div>';
       return;
     }
-
-
-    const color = (c) => getCourseColor(c.color);
+    const colorFn = (c) => getCourseColor(c.color);
     el.innerHTML = rows.map(({ course: c, idx, name, rec }) => {
       const statusText = rec
         ? (rec.status === 'partial' && rec.partialAt != null
-            ? `<span class="material-symbols-rounded" style="font-size:13px">pause_circle</span> 上到 ${Math.floor(rec.partialAt/60)}分${rec.partialAt%60}秒 · ${formatDate(rec.date)}`
+            ? `<span class="material-symbols-rounded" style="font-size:13px">pause_circle</span> 上到 ${Math.floor(rec.partialAt/3600)?Math.floor(rec.partialAt/3600)+'時':''}${Math.floor((rec.partialAt%3600)/60)}分${rec.partialAt%60}秒 · ${formatDate(rec.date)}`
             : `<span class="material-symbols-rounded" style="font-size:13px">check_circle</span> ${formatDate(rec.date)}`)
         : '未上';
       const dur = LESSON_DURATIONS[c.id]?.[idx];
-      const durStr = dur
-        ? `${Math.floor(dur/3600) ? Math.floor(dur/3600)+'時' : ''}${Math.floor((dur%3600)/60)}分`
-        : '';
-      return `
-        <div class="lesson-item">
-          <div class="lesson-num" style="background:${color(c)}20;color:${color(c)}">${idx+1}</div>
-          <div class="lesson-info">
-            <div class="lesson-name">${name}</div>
-            <div class="lesson-meta">${c.name}${durStr ? ' · '+durStr : ''} · ${statusText}</div>
-          </div>
-          <div class="lesson-actions">
-            ${!rec ? `<button class="btn btn-ghost btn-sm" onclick="openRecordModal('${c.id}',${idx})">記錄</button>` : 
-                    `<button class="btn btn-danger btn-sm" onclick="deleteItem('record','${rec.id}')">刪除</button>`}
-          </div>
+      const durStr = dur ? `${Math.floor(dur/3600)?Math.floor(dur/3600)+'時':''}${Math.floor((dur%3600)/60)}分` : '';
+      return `<div class="lesson-item">
+        <div class="lesson-num" style="background:${colorFn(c)}20;color:${colorFn(c)}">${idx+1}</div>
+        <div class="lesson-info">
+          <div class="lesson-name">${name}</div>
+          <div class="lesson-meta">${c.name}${durStr?' · '+durStr:''} · ${statusText}</div>
         </div>
-      `;
+        <div class="lesson-actions">
+          ${!rec ? `<button class="btn btn-ghost btn-sm" onclick="openRecordModal('${c.id}',${idx})">記錄</button>` :
+                  `<button class="btn btn-danger btn-sm" onclick="deleteItem('record','${rec.id}')">刪除</button>`}
+        </div>
+      </div>`;
     }).join('');
   }
 
@@ -940,12 +994,13 @@
 
   // ==================== Record Modal ====================
   window.openRecordModal = function(courseId, lessonIndex) {
-    document.getElementById('rec-course').value = courseId || '';
+    
+    document.getElementById('rec-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     updateRecLessonOptions(courseId, lessonIndex);
     if (lessonIndex !== undefined) document.getElementById('rec-lesson').value = lessonIndex;
     const now = new Date();
     document.getElementById('rec-date').value = now.toISOString().split('T')[0];
-    document.getElementById('rec-time').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    //document.getElementById('rec-time').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     document.getElementById('modal-record').classList.add('open');
   };
 
@@ -966,9 +1021,10 @@
     const courseId = document.getElementById('rec-course').value;
     const lessonIndex = parseInt(document.getElementById('rec-lesson').value);
     const date = document.getElementById('rec-date').value;
-    const time = document.getElementById('rec-time').value;
+    const time = '';
     const note = document.getElementById('rec-note').value;
     const recStatus = document.getElementById('rec-status').value;
+    const partialHr  = parseInt(document.getElementById('rec-partial-hr').value)  || 0;
     const partialMin = parseInt(document.getElementById('rec-partial-min').value) || 0;
     const partialSec = parseInt(document.getElementById('rec-partial-sec').value) || 0;
     
@@ -980,54 +1036,31 @@
 
     await saveRecord({ courseId, lessonIndex, date, time, note,
       status: recStatus,
-      partialAt: recStatus === 'partial' ? partialMin * 60 + partialSec : null
+      partialAt: recStatus === 'partial' ? partialHr * 3600 + partialMin * 60 + partialSec : null
     });
     closeModal('modal-record');
     document.getElementById('rec-note').value = '';
   };
 
   // ==================== Schedule Modal ====================
-  document.getElementById('sch-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-
-  function updateSchLessonOptions() {
-    const courseId = document.getElementById('sch-course').value;
-    const lessons = LESSONS[courseId] || [];
-    ['sch-from','sch-to'].forEach(id => {
-      document.getElementById(id).innerHTML = lessons.map((l,i) => `<option value="${i}">${i+1}. ${l}</option>`).join('');
-    });
-  }
-  document.getElementById('sch-course').addEventListener('change', updateSchLessonOptions);
-  updateSchLessonOptions();
 
   window.openScheduleModal = function() {
     const now = new Date();
+    document.getElementById('sch-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     document.getElementById('sch-date').value = now.toISOString().split('T')[0];
     document.getElementById('sch-time').value = '09:00';
     document.getElementById('modal-schedule').classList.add('open');
   };
 
-  let schMode = 'range'; // 'range' or 'minutes'
-  window.setSchMode = function(mode) {
-    schMode = mode;
-    document.getElementById('sch-range-row').style.display = mode === 'range' ? 'grid' : 'none';
-    document.getElementById('sch-minutes-row').style.display = mode === 'minutes' ? 'block' : 'none';
-    document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
-  };
-
   document.getElementById('save-schedule').onclick = async function() {
-    const courseId = document.getElementById('sch-course').value;
     const date = document.getElementById('sch-date').value;
     const time = document.getElementById('sch-time').value;
     const note = document.getElementById('sch-note').value;
     if (!courseId || !date) { showToast('請填寫必要欄位', 'error'); return; }
 
     const data = { courseId, date, time, note, status: 'scheduled' };
-    if (schMode === 'range') {
-      data.fromLesson = parseInt(document.getElementById('sch-from').value);
-      data.toLesson = parseInt(document.getElementById('sch-to').value);
-    } else {
-      data.minutes = parseInt(document.getElementById('sch-minutes').value) || 60;
-    }
+    data.minutes = parseInt(document.getElementById('sch-minutes').value) || 60;
+   
     await saveSchedule(data);
     closeModal('modal-schedule');
     document.getElementById('sch-note').value = '';
