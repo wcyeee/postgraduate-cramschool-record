@@ -498,7 +498,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">上課分鐘數</label>
-        <input type="number" id="sch-minutes" class="form-control" value="90" min="15" step="15">
+        <input type="number" id="sch-minutes" class="form-control" value="200" min="15" step="15">
       </div>
       <div class="form-group">
         <label class="form-label">備注（可選）</label>
@@ -740,10 +740,10 @@
       const c = COURSES.find(c2 => c2.id === s.courseId);
       const color = c ? getCourseColor(c.color) : '#6c8ef7';
       const dateStr = formatDate(s.date);
-      return `<div class="event-item" style="border-left-color:${color}">
+      return `<div class="event-item" style="border-left-color:${color};cursor:pointer" onclick="openEditScheduleModal('${s.id}')">
         <div class="event-time">${dateStr} ${s.time || ''}</div>
         <div class="event-name">${c?.name || ''}</div>
-        <div class="event-meta">${s.minutes ? s.minutes+'分鐘' : ''} ${s.fromLesson !== undefined ? `第${s.fromLesson+1}堂` : ''}</div>
+        <div class="event-meta">${s.minutes ? s.minutes+'分鐘' : ''} ${s.fromLesson !== undefined ? `第${s.fromLesson+1}堂` : ''} <span class="material-symbols-rounded" style="font-size:13px;vertical-align:middle">edit</span></div>
       </div>`;
     }).join('');
   }
@@ -1052,6 +1052,20 @@
     document.getElementById('modal-schedule').classList.add('open');
   };
 
+  window.openEditScheduleModal = function(scheduleId) {
+    const s = state.schedules.find(s => s.id === scheduleId);
+    if (!s) return;
+    document.getElementById('sch-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('sch-course').value = s.courseId;
+    document.getElementById('sch-date').value = s.date || '';
+    document.getElementById('sch-time').value = s.time || '09:00';
+    document.getElementById('sch-minutes').value = s.minutes || 200;
+    document.getElementById('sch-note').value = s.note || '';
+    // 暫存編輯中的 id
+    document.getElementById('modal-schedule').dataset.editId = scheduleId;
+    document.getElementById('modal-schedule').classList.add('open');
+  };
+
   document.getElementById('save-schedule').onclick = async function() {
     const courseId = document.getElementById('sch-course').value;
     const date = document.getElementById('sch-date').value;
@@ -1059,12 +1073,27 @@
     const note = document.getElementById('sch-note').value;
     if (!courseId || !date) { showToast('請填寫必要欄位', 'error'); return; }
 
-    const data = { courseId, date, time, note, status: 'scheduled' };
-    data.minutes = parseInt(document.getElementById('sch-minutes').value) || 60;
-   
-    await saveSchedule(data);
+    const data = { courseId, date, time, note };
+    data.minutes = parseInt(document.getElementById('sch-minutes').value) || 200;
+
+    const editId = document.getElementById('modal-schedule').dataset.editId;
+    if (editId) {
+      // 編輯模式：更新 Firestore
+      try {
+        await updateDoc(doc(db, 'schedules', editId), data);
+        const idx = state.schedules.findIndex(s => s.id === editId);
+        if (idx !== -1) state.schedules[idx] = { ...state.schedules[idx], ...data };
+        showToast('排課已更新');
+      } catch(e) { showToast('更新失敗', 'error'); }
+      delete document.getElementById('modal-schedule').dataset.editId;
+    } else {
+      // 新增模式
+      data.status = 'scheduled';
+      await saveSchedule(data);
+    }
     closeModal('modal-schedule');
     document.getElementById('sch-note').value = '';
+    renderAll();
   };
 
   // ==================== Utils ====================
