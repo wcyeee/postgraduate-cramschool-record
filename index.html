@@ -617,7 +617,7 @@
     } catch(e) {
       state.schedules.push({ id: 'local_' + Date.now(), ...data });
     }
-    renderAll(); showToast('📅 排課成功', 'success');
+    renderAll(); showToast('排課成功', 'success');
   }
 
   async function deleteItem(type, id) {
@@ -1044,7 +1044,7 @@
 
   // ==================== Schedule Modal ====================
 
-  window.openScheduleModal = function() {
+  window.openScheduleModal = function(courseId, lessonIndex) {
     const now = new Date();
     document.getElementById('sch-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     document.getElementById('sch-date').value = now.toISOString().split('T')[0];
@@ -1053,6 +1053,7 @@
   };
 
   document.getElementById('save-schedule').onclick = async function() {
+    const courseId = document.getElementById('sch-course').value;
     const date = document.getElementById('sch-date').value;
     const time = document.getElementById('sch-time').value;
     const note = document.getElementById('sch-note').value;
