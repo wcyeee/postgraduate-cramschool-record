@@ -251,7 +251,6 @@
     .main { padding: 72px 20px 24px; }
   }
   @media (max-width: 480px) {
-    .lessons-header { display: none; }
     /* Topnav 改成可捲動 */
     .topnav {
       padding: 0 12px;
@@ -636,7 +635,19 @@
     if (!s) return;
     s.status = 'completed';
     try { await updateDoc(doc(db, 'schedules', id), { status: 'completed' }); } catch(e) {}
+
     renderAll(); showToast('標記完成', 'success');
+
+    // 自動開啟課程記錄視窗，預填課程與今天日期
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('rec-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('rec-course').value = s.courseId;
+    updateRecLessonOptions(s.courseId);
+    document.getElementById('rec-date').value = today;
+    document.getElementById('rec-note').value = '';
+    document.getElementById('rec-status').value = 'done';
+    document.getElementById('rec-partial-row').style.display = 'none';
+    document.getElementById('modal-record').classList.add('open');
   }
 
   // ==================== Render ====================
@@ -687,7 +698,8 @@
 
     // Build event map
     const evMap = {};
-    [...state.records, ...state.schedules].forEach(item => {
+    const activeSchedules = state.schedules.filter(s => s.status !== 'completed');
+    [...state.records, ...activeSchedules].forEach(item => {
       if (!item.date) return;
       const d = item.date.split('T')[0];
       if (!evMap[d]) evMap[d] = [];
@@ -818,44 +830,6 @@
     const isDesktop = window.innerWidth > 1024;
     const filterCourse = document.getElementById('lesson-course-filter')?.value || 'all';
 
-    // 電腦版：不管 filter，一次全部展開（按課程分組）
-    if (isDesktop) {
-      let html = '';
-      COURSES.forEach(c => {
-        const lessons = LESSONS[c.id] || [];
-        const recs = state.records.filter(r => r.courseId === c.id);
-        const color = getCourseColor(c.color);
-        html += `<div class="lesson-group-header">
-          <span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0"></span>
-          ${c.name}
-        </div>`;
-        lessons.forEach((name, idx) => {
-          const rec = recs.find(r => r.lessonIndex === idx);
-          const statusText = rec
-            ? (rec.status === 'partial' && rec.partialAt != null
-                ? `<span class="material-symbols-rounded" style="font-size:13px">pause_circle</span> 上到 ${Math.floor(rec.partialAt/3600)?Math.floor(rec.partialAt/3600)+'時':''}${Math.floor((rec.partialAt%3600)/60)}分${rec.partialAt%60}秒 · ${formatDate(rec.date)}`
-                : `<span class="material-symbols-rounded" style="font-size:13px">check_circle</span> ${formatDate(rec.date)}`)
-            : '未上';
-          const dur = LESSON_DURATIONS[c.id]?.[idx];
-          const durStr = dur ? `${Math.floor(dur/3600)?Math.floor(dur/3600)+'時':''}${Math.floor((dur%3600)/60)}分` : '';
-          html += `<div class="lesson-item">
-            <div class="lesson-num" style="background:${color}20;color:${color}">${idx+1}</div>
-            <div class="lesson-info">
-              <div class="lesson-name">${name}</div>
-              <div class="lesson-meta">${durStr ? durStr+' · ' : ''}${statusText}</div>
-            </div>
-            <div class="lesson-actions">
-              ${!rec ? `<button class="btn btn-ghost btn-sm" onclick="openRecordModal('${c.id}',${idx})">記錄</button>` :
-                      `<button class="btn btn-danger btn-sm" onclick="deleteItem('record','${rec.id}')">刪除</button>`}
-            </div>
-          </div>`;
-        });
-      });
-      el.innerHTML = html;
-      return;
-    }
-
-    // 手機/平板：維持原本 filter 邏輯
     let rows = [];
     COURSES.forEach(c => {
       if (filterCourse !== 'all' && c.id !== filterCourse) return;
@@ -973,7 +947,8 @@
   };
 
   window.showDayDetail = function(dateStr) {
-    const events = [...state.records, ...state.schedules].filter(e => e.date?.startsWith(dateStr));
+    const activeSchedules = state.schedules.filter(s => s.status !== 'completed');
+    const events = [...state.records, ...activeSchedules].filter(e => e.date?.startsWith(dateStr));
     if (!events.length) return;
     // Show in modal
     const list = events.map(e => {
@@ -993,6 +968,12 @@
   };
 
   // ==================== Record Modal ====================
+  function updateRecLessonOptions(courseId, selected) {
+      const sel = document.getElementById('rec-lesson');
+      const lessons = LESSONS[courseId] || [];
+      sel.innerHTML = lessons.map((l, i) => `<option value="${i}" ${i===selected?'selected':''}>${i+1}. ${l}</option>`).join('');
+    }
+
   window.openRecordModal = function(courseId, lessonIndex) {
     
     document.getElementById('rec-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
@@ -1003,12 +984,6 @@
     //document.getElementById('rec-time').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     document.getElementById('modal-record').classList.add('open');
   };
-
-  function updateRecLessonOptions(courseId, selected) {
-    const sel = document.getElementById('rec-lesson');
-    const lessons = LESSONS[courseId] || [];
-    sel.innerHTML = lessons.map((l, i) => `<option value="${i}" ${i===selected?'selected':''}>${i+1}. ${l}</option>`).join('');
-  }
 
   document.getElementById('rec-course').addEventListener('change', function() {
     updateRecLessonOptions(this.value);
@@ -1033,6 +1008,14 @@
     // Remove existing record for same lesson
     const existing = state.records.find(r => r.courseId === courseId && r.lessonIndex === lessonIndex);
     if (existing) { await deleteItem('record', existing.id); }
+
+    // 自動補登前面所有未完成的課程
+    for (let i = 0; i < lessonIndex; i++) {
+      const alreadyDone = state.records.find(r => r.courseId === courseId && r.lessonIndex === i);
+      if (!alreadyDone) {
+        await saveRecord({ courseId, lessonIndex: i, date, time, note: '自動補登', status: 'done', partialAt: null });
+      }
+    }
 
     await saveRecord({ courseId, lessonIndex, date, time, note,
       status: recStatus,
