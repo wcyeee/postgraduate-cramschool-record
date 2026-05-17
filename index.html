@@ -522,12 +522,34 @@
   </div>
 </div>
 
+<div id="modal-login" class="modal-overlay open" style="z-index: 2000;">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <div class="modal-title">管理員系統登入</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">電子信箱</label>
+        <input type="email" id="login-email" class="form-control" placeholder="請輸入 Email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">密碼</label>
+        <input type="password" id="login-password" class="form-control" placeholder="請輸入密碼">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="btn-login" style="width:100%; justify-content:center;">登入系統</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   // ==================== Firebase Config ====================
   // 請替換成你自己的 Firebase 配置
@@ -543,6 +565,46 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+
+  // 新增：初始化 Auth
+  const auth = getAuth(app);
+
+  // 新增：監聽身份驗證狀態變更
+  onAuthStateChanged(auth, (user) => {
+    const loginModal = document.getElementById('modal-login');
+    if (user) {
+      // 已登入：隱藏登入視窗，並開始載入資料
+      loginModal.classList.remove('open');
+      loadData();
+    } else {
+      // 未登入：顯示登入視窗
+      loginModal.classList.add('open');
+    }
+  });
+
+  // 新增：綁定登入按鈕點擊事件
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnLogin = document.getElementById('btn-login');
+    if (btnLogin) {
+      btnLogin.onclick = async function() {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        
+        if (!email || !password) {
+          showToast('請填寫帳號與密碼', 'error');
+          return;
+        }
+
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          showToast('登入成功', 'success');
+        } catch(e) {
+          console.error(e);
+          showToast('登入失敗，請確認帳密是否正確', 'error');
+        }
+      };
+    }
+  });
 
   // ==================== Course Data ====================
   const COURSES = [
@@ -1116,7 +1178,7 @@
   });
 
   // Init
-  loadData();
+  // loadData();
   navigate('home');
 
   
