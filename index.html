@@ -388,40 +388,40 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:start">
         <!-- Lessons Page -->
         <div>
-      <div class="page-header">
-        <div>
-          <div class="page-title">課程記錄</div>
-          <div class="page-subtitle">記錄每堂課的上課情況</div>
+          <div class="page-header">
+            <div>
+              <div class="page-title">課程記錄</div>
+              <div class="page-subtitle">記錄每堂課的上課情況</div>
+            </div>
+            <button class="btn btn-primary" onclick="openRecordModal()">+ 記錄上課</button>
+          </div>
+          <div id="lessons-filter-wrap" class="lessons-header">
+            <select id="lesson-course-filter" class="form-control" style="width:200px"></select>
+          </div>
+          <div id="lessons-list" class="lessons-list"></div>
         </div>
-        <button class="btn btn-primary" onclick="openRecordModal()">+ 記錄上課</button>
-      </div>
-      <div id="lessons-filter-wrap" class="lessons-header">
-        <select id="lesson-course-filter" class="form-control" style="width:200px"></select>
-      </div>
-      <div id="lessons-list" class="lessons-list"></div>
-    </div>
-    <!-- Schedule Page -->
+        <!-- Schedule Page -->
         <div>
-      <div class="page-header">
-        <div>
-          <div class="page-title">排課管理</div>
-          <div class="page-subtitle">安排與追蹤課程時程</div>
-        </div>
-        <button class="btn btn-primary" onclick="openScheduleModal()">+ 新增排課</button>
-      </div>
-      <div class="schedule-filters">
-        <button class="filter-btn active" data-filter="all" onclick="setScheduleFilter('all')">全部</button>
-        <button class="filter-btn" data-filter="upcoming" onclick="setScheduleFilter('upcoming')">即將上課</button>
-        <button class="filter-btn" data-filter="completed" onclick="setScheduleFilter('completed')">已完成</button>
-        <span style="width:1px;background:var(--border);height:28px;display:inline-block;margin:0 4px"></span>
-        <button class="filter-btn" data-filter="ds" onclick="setScheduleFilter('ds')">資料結構</button>
-        <button class="filter-btn" data-filter="co" onclick="setScheduleFilter('co')">計算機概論</button>
-        <button class="filter-btn" data-filter="net" onclick="setScheduleFilter('net')">網際網路概論</button>
-        <button class="filter-btn" data-filter="db" onclick="setScheduleFilter('db')">資料庫</button>
-        <button class="filter-btn" data-filter="mis" onclick="setScheduleFilter('mis')">MIS</button>
-        <button class="filter-btn" data-filter="ai" onclick="setScheduleFilter('ai')">AI</button>
-      </div>
-      <div id="schedule-list" class="schedule-list"></div>
+          <div class="page-header">
+            <div>
+              <div class="page-title">排課管理</div>
+              <div class="page-subtitle">安排與追蹤課程時程</div>
+            </div>
+            <button class="btn btn-primary" onclick="openScheduleModal()">+ 新增排課</button>
+          </div>
+          <div class="schedule-filters">
+            <button class="filter-btn active" data-filter="all" onclick="setScheduleFilter('all')">全部</button>
+            <button class="filter-btn" data-filter="upcoming" onclick="setScheduleFilter('upcoming')">即將上課</button>
+            <button class="filter-btn" data-filter="completed" onclick="setScheduleFilter('completed')">已完成</button>
+            <span style="width:1px;background:var(--border);height:28px;display:inline-block;margin:0 4px"></span>
+            <button class="filter-btn" data-filter="ds" onclick="setScheduleFilter('ds')">資料結構</button>
+            <button class="filter-btn" data-filter="co" onclick="setScheduleFilter('co')">計算機概論</button>
+            <button class="filter-btn" data-filter="net" onclick="setScheduleFilter('net')">網際網路概論</button>
+            <button class="filter-btn" data-filter="db" onclick="setScheduleFilter('db')">資料庫</button>
+            <button class="filter-btn" data-filter="mis" onclick="setScheduleFilter('mis')">MIS</button>
+            <button class="filter-btn" data-filter="ai" onclick="setScheduleFilter('ai')">AI</button>
+          </div>
+          <div id="schedule-list" class="schedule-list"></div>
         </div>
       </div>
     </div>
@@ -527,6 +527,11 @@
       <button class="modal-close" onclick="closeModal('modal-day')">×</button>
     </div>
     <div class="modal-body" id="day-detail-list"></div>
+    <div class="modal-footer" style="justify-content:flex-start">
+      <button class="btn btn-primary btn-sm" id="day-add-schedule-btn" onclick="openScheduleModalForDay()">
+        <span class="material-symbols-rounded" style="font-size:15px">add</span> 新增排課
+      </button>
+    </div>
   </div>
 </div>
 
@@ -810,7 +815,7 @@
     const today = new Date().toISOString().split('T')[0];
     const upcoming = state.schedules
       .filter(s => s.date >= today && s.status !== 'completed')
-      .sort((a,b) => a.date.localeCompare(b.date))
+      .sort((a,b) => a.date.localeCompare(b.date))    
 
     const el = document.getElementById('upcoming-list');
     if (!upcoming.length) {
@@ -1015,22 +1020,38 @@
     renderCalendar();
   };
 
+ 
   window.showDayDetail = function(dateStr) {
     const activeSchedules = state.schedules.filter(s => s.status !== 'completed');
     const events = [...state.records, ...activeSchedules].filter(e => e.date?.startsWith(dateStr));
-    if (!events.length) return;
-    // Show in modal
-    const list = events.map(e => {
+
+    document.getElementById('modal-day').dataset.date = dateStr;
+
+    const list = events.length ? events.map(e => {
       const c = COURSES.find(c2 => c2.id === e.courseId);
       const isRecord = state.records.includes(e);
       const lesson = isRecord && LESSONS[e.courseId]?.[e.lessonIndex];
-      return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
-        <div style="font-size:13px;font-weight:600;color:var(--text)">${c?.name}</div>
-        <div style="font-size:12px;color:var(--text2)">${isRecord 
-            ? '<span class="material-symbols-rounded" style="font-size:13px">check_circle</span> '+lesson 
+      const actionBtns = !isRecord
+        ? `<span style="display:flex;gap:4px;margin-left:auto">
+            <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openEditScheduleModal('${e.id}')" title="編輯">
+              <span class="material-symbols-rounded" style="font-size:14px">edit</span>
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteItem('schedule','${e.id}');closeModal('modal-day')" title="刪除">
+              <span class="material-symbols-rounded" style="font-size:14px">delete</span>
+            </button>
+          </span>`
+        : '';
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${c?.name}</div>
+          <div style="font-size:12px;color:var(--text2)">${isRecord
+            ? '<span class="material-symbols-rounded" style="font-size:13px">check_circle</span> ' + lesson
             : '<span class="material-symbols-rounded" style="font-size:13px">event</span> 排課'} ${e.time||''}</div>
+        </div>
+        ${actionBtns}
       </div>`;
-    }).join('');
+    }).join('') : '<div style="font-size:13px;color:var(--text3);padding:8px 0">當日無行程</div>';
+
     document.getElementById('day-detail-date').textContent = formatDate(dateStr);
     document.getElementById('day-detail-list').innerHTML = list;
     document.getElementById('modal-day').classList.add('open');
@@ -1100,7 +1121,19 @@
     const now = new Date();
     document.getElementById('sch-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     document.getElementById('sch-date').value = now.toISOString().split('T')[0];
-    document.getElementById('sch-time').value = '09:00';
+    document.getElementById('sch-time').value = '08:40';
+    document.getElementById('modal-schedule').classList.add('open');
+  };
+
+  window.openScheduleModalForDay = function() {
+    const dateStr = document.getElementById('modal-day').dataset.date || '';
+    closeModal('modal-day');
+    document.getElementById('sch-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('sch-date').value = dateStr;
+    document.getElementById('sch-time').value = '08:40';
+    document.getElementById('sch-minutes').value = 200;
+    document.getElementById('sch-note').value = '';
+    delete document.getElementById('modal-schedule').dataset.editId;
     document.getElementById('modal-schedule').classList.add('open');
   };
 
@@ -1110,7 +1143,7 @@
     document.getElementById('sch-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     document.getElementById('sch-course').value = s.courseId;
     document.getElementById('sch-date').value = s.date || '';
-    document.getElementById('sch-time').value = s.time || '09:00';
+    document.getElementById('sch-time').value = s.time || '08:40';
     document.getElementById('sch-minutes').value = s.minutes || 200;
     document.getElementById('sch-note').value = s.note || '';
     // 暫存編輯中的 id
