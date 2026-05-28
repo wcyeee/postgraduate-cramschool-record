@@ -109,7 +109,7 @@
 
   /* Side panel */
   .side-panel { display: flex; flex-direction: column; gap: 14px; }
-  .upcoming-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+  .upcoming-list { display: flex; flex-direction: column; gap: 8px; max-height: 480px; overflow-y: auto; }
   .event-item { background: var(--surface2); border-radius: 8px; padding: 10px 12px; border-left: 3px solid var(--accent); }
   .event-time { font-size: 11px; color: var(--text3); margin-bottom: 3px; }
   .event-name { font-size: 13px; font-weight: 500; color: var(--text); }
@@ -302,6 +302,9 @@
     /* 課程記錄列 */
     .lesson-item { flex-wrap: wrap; }
     .lesson-actions { width: 100%; justify-content: flex-end; margin-top: 4px; }
+    #page-lessons > div[style*="grid"] {
+      grid-template-columns: 1fr !important;
+    }
   }
   .material-symbols-rounded { font-size: inherit; vertical-align: middle; line-height: 1; user-select: none; }
 </style>
@@ -321,8 +324,7 @@
       <div class="nav-item active" data-page="home" onclick="navigate('home')">
         首頁
       </div>
-    <div class="nav-item" data-page="lessons" onclick="navigate('lessons')">課程記錄</div>
-    <div class="nav-item" data-page="schedule" onclick="navigate('schedule')">排課管理</div>
+    <div class="nav-item" data-page="lessons" onclick="navigate('lessons')">課程記錄 & 排課管理</div>
   </div>
 
   <!-- Main -->
@@ -381,8 +383,11 @@
       <div id="progress-grid" class="progress-grid"></div>
     </div>
 
-    <!-- Lessons Page -->
+    <!-- Lessons Page + Schedule Page -->
     <div id="page-lessons" class="page">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:start">
+        <!-- Lessons Page -->
+        <div>
       <div class="page-header">
         <div>
           <div class="page-title">課程記錄</div>
@@ -395,9 +400,8 @@
       </div>
       <div id="lessons-list" class="lessons-list"></div>
     </div>
-
     <!-- Schedule Page -->
-    <div id="page-schedule" class="page">
+        <div>
       <div class="page-header">
         <div>
           <div class="page-title">排課管理</div>
@@ -418,6 +422,8 @@
         <button class="filter-btn" data-filter="ai" onclick="setScheduleFilter('ai')">AI</button>
       </div>
       <div id="schedule-list" class="schedule-list"></div>
+        </div>
+      </div>
     </div>
 
   </main>
@@ -805,7 +811,6 @@
     const upcoming = state.schedules
       .filter(s => s.date >= today && s.status !== 'completed')
       .sort((a,b) => a.date.localeCompare(b.date))
-      .slice(0, 8);
 
     const el = document.getElementById('upcoming-list');
     if (!upcoming.length) {
