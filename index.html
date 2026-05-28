@@ -966,7 +966,7 @@
       } else if (s.minutes) {
         detailStr = `${s.minutes}分鐘`;
       }
-      return `<div class="schedule-item">
+      return `<div class="schedule-item" style="${isCompleted ? 'opacity:0.4;' : ''}">
         <div class="schedule-time-block">
           <div class="schedule-date" style="color:${color}">${dateDisp}</div>
           <div class="schedule-time">${dayDisp}</div>
