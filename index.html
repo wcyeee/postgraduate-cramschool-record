@@ -29,6 +29,8 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
+  .desktop-only { display: flex; }
+
   /* Layout */
   .app { display: flex; flex-direction: column; min-height: 100vh; }
   .topnav {
@@ -243,6 +245,8 @@
     left: 50%; transform: translateX(-50%); top: 100%; margin-top: 4px;
   }
   .cal-day { position: relative; }
+  .mobile-only { display: none; }
+  .lessons-schedule-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: start; }
 
   @media (max-width: 1024px) {
     .stats-row { grid-template-columns: repeat(3, 1fr); }
@@ -251,6 +255,10 @@
     .side-panel { flex-direction: row; }
     .side-panel .card { flex: 1; }
     .main { padding: 72px 20px 24px; }
+    .mobile-only { display: flex; }
+    .desktop-only { display: none; }
+    .lessons-schedule-wrap { display: block; }
+    .lessons-schedule-wrap > div:last-child { display: none; }
   }
   @media (max-width: 480px) {
     /* Topnav 改成可捲動 */
@@ -289,6 +297,11 @@
     /* 排課列表 */
     .schedule-item { flex-wrap: wrap; gap: 10px; }
     .schedule-divider { display: none; }
+    /* 手機：課程記錄頁隱藏排課區塊 */
+    #schedule-section { display: none; }
+    /* 手機：課程記錄/排課管理 grid 改單欄 */
+    .lessons-schedule-wrap { display: flex; flex-direction: column; }
+
 
     /* Modal 全螢幕 */
     .modal { max-width: 100% !important; max-height: 95vh; border-radius: 16px 16px 0 0; }
@@ -324,7 +337,9 @@
       <div class="nav-item active" data-page="home" onclick="navigate('home')">
         首頁
       </div>
-    <div class="nav-item" data-page="lessons" onclick="navigate('lessons')">課程記錄 & 排課管理</div>
+    <div class="nav-item desktop-only" data-page="lessons" onclick="navigate('lessons')">課程記錄 & 排課管理</div>
+    <div class="nav-item mobile-only" data-page="lessons" onclick="navigate('lessons')">課程記錄</div>
+    <div class="nav-item mobile-only" data-page="schedule" onclick="navigate('schedule')">排課管理</div>
   </div>
 
   <!-- Main -->
@@ -385,7 +400,7 @@
 
     <!-- Lessons Page + Schedule Page -->
     <div id="page-lessons" class="page">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:start">
+      <div class="lessons-schedule-wrap">
         <!-- Lessons Page -->
         <div>
           <div class="page-header">
@@ -424,6 +439,30 @@
           <div id="schedule-list" class="schedule-list"></div>
         </div>
       </div>
+    </div>
+
+    <!-- mobile independent page -->
+    <div id="page-schedule" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">排課管理</div>
+          <div class="page-subtitle">安排與追蹤課程時程</div>
+        </div>
+        <button class="btn btn-primary" onclick="openScheduleModal()">+ 新增排課</button>
+      </div>
+      <div class="schedule-filters">
+        <button class="filter-btn active" data-filter="all" onclick="setScheduleFilter('all')">全部</button>
+        <button class="filter-btn" data-filter="upcoming" onclick="setScheduleFilter('upcoming')">即將上課</button>
+        <button class="filter-btn" data-filter="completed" onclick="setScheduleFilter('completed')">已完成</button>
+        <span style="width:1px;background:var(--border);height:28px;display:inline-block;margin:0 4px"></span>
+        <button class="filter-btn" data-filter="ds" onclick="setScheduleFilter('ds')">資料結構</button>
+        <button class="filter-btn" data-filter="co" onclick="setScheduleFilter('co')">計算機概論</button>
+        <button class="filter-btn" data-filter="net" onclick="setScheduleFilter('net')">網際網路概論</button>
+        <button class="filter-btn" data-filter="db" onclick="setScheduleFilter('db')">資料庫</button>
+        <button class="filter-btn" data-filter="mis" onclick="setScheduleFilter('mis')">MIS</button>
+        <button class="filter-btn" data-filter="ai" onclick="setScheduleFilter('ai')">AI</button>
+      </div>
+      <div id="schedule-list-mobile" class="schedule-list"></div>
     </div>
 
   </main>
@@ -944,6 +983,7 @@
 
   function renderSchedules() {
     const el = document.getElementById('schedule-list');
+    const elMobile = document.getElementById('schedule-list-mobile');
     const today = new Date().toISOString().split('T')[0];
     let items = [...state.schedules].sort((a,b) => b.date?.localeCompare(a.date || '') || 0);
 
@@ -989,6 +1029,8 @@
         </div>
       </div>`;
     }).join('');
+
+    if (elMobile) elMobile.innerHTML = el.innerHTML;
   }
 
   // ==================== Navigation ====================
