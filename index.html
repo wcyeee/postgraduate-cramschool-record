@@ -252,8 +252,7 @@
     .stats-row { grid-template-columns: repeat(3, 1fr); }
     .progress-grid { grid-template-columns: repeat(2, 1fr); }
     .calendar-wrap { grid-template-columns: 1fr; }
-    .side-panel { flex-direction: row; }
-    .side-panel .card { flex: 1; }
+    .side-panel { flex-direction: column; }
     .main { padding: 72px 20px 24px; }
     .mobile-only { display: flex; }
     .desktop-only { display: none; }
@@ -381,12 +380,12 @@
         </div>
         <div class="side-panel">
           <div class="card">
-            <div class="card-title">即將上課</div>
-            <div id="upcoming-list" class="upcoming-list"></div>
-          </div>
-          <div class="card">
             <div class="card-title">目前上課進度</div>
             <div id="current-progress-list" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">即將上課</div>
+            <div id="upcoming-list" class="upcoming-list"></div>
           </div>
         </div>
       </div>
@@ -591,6 +590,27 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" id="btn-login" style="width:100%; justify-content:center;">登入系統</button>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Action Modal -->
+<div id="modal-schedule-action" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-schedule-action')">
+  <div class="modal" style="max-width:320px">
+    <div class="modal-header">
+      <div class="modal-title">排課操作</div>
+      <button class="modal-close" onclick="closeModal('modal-schedule-action')">×</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:10px;padding:16px 24px">
+      <button class="btn btn-ghost" id="action-edit-btn" style="justify-content:flex-start;gap:10px">
+        <span class="material-symbols-rounded" style="font-size:18px">edit</span> 編輯排課
+      </button>
+      <button class="btn btn-ghost" id="action-complete-btn" style="justify-content:flex-start;gap:10px">
+        <span class="material-symbols-rounded" style="font-size:18px">check_circle</span> 標記完成
+      </button>
+      <button class="btn btn-danger" id="action-delete-btn" style="justify-content:flex-start;gap:10px">
+        <span class="material-symbols-rounded" style="font-size:18px">delete</span> 刪除
+      </button>
     </div>
   </div>
 </div>
@@ -1051,9 +1071,7 @@
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <span class="schedule-status ${isCompleted?'status-completed':'status-scheduled'}">${isCompleted?'完成':'排定'}</span>
-          ${!isCompleted ? `<button class="btn btn-ghost btn-sm" onclick="openEditScheduleModal('${s.id}')">編輯</button>` : ''}
-          ${!isCompleted ? `<button class="btn btn-ghost btn-sm" onclick="markScheduleComplete('${s.id}')">完成</button>` : ''}
-          <button class="btn btn-danger btn-sm" onclick="confirmDelete('schedule','${s.id}')">刪除</button>
+          <button class="btn btn-ghost btn-sm" onclick="openScheduleActionModal('${s.id}','${isCompleted}')">更多</button>
         </div>
       </div>`;
     }).join('');
@@ -1335,6 +1353,31 @@
     // 暫存編輯中的 record id，讓 save-record 知道是編輯模式
     document.getElementById('modal-record').dataset.editId = recordId;
     document.getElementById('modal-record').classList.add('open');
+  };
+
+  window.openScheduleActionModal = function(scheduleId, isCompleted) {
+    const editBtn     = document.getElementById('action-edit-btn');
+    const completeBtn = document.getElementById('action-complete-btn');
+    const deleteBtn   = document.getElementById('action-delete-btn');
+
+    // 已完成的排課隱藏「編輯」和「標記完成」
+    editBtn.style.display     = isCompleted === 'true' ? 'none' : 'flex';
+    completeBtn.style.display = isCompleted === 'true' ? 'none' : 'flex';
+
+    editBtn.onclick = function() {
+      closeModal('modal-schedule-action');
+      openEditScheduleModal(scheduleId);
+    };
+    completeBtn.onclick = function() {
+      closeModal('modal-schedule-action');
+      markScheduleComplete(scheduleId);
+    };
+    deleteBtn.onclick = function() {
+      closeModal('modal-schedule-action');
+      confirmDelete('schedule', scheduleId);
+    };
+
+    document.getElementById('modal-schedule-action').classList.add('open');
   };
 
   // Schedule filter buttons
