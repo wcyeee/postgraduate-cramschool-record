@@ -882,12 +882,15 @@
       const c = COURSES.find(c2 => c2.id === s.courseId);
       const color = c ? getCourseColor(c.color) : '#6c8ef7';
       const dateStr = formatDate(s.date);
-      return `<div class="event-item" style="border-left-color:${color};cursor:pointer" onclick="openEditScheduleModal('${s.id}')">
-        <div class="event-time">${dateStr} ${s.time || ''}</div>
-        <div class="event-name">${c?.name || ''}</div>
-        <div class="event-meta" style="display:flex;align-items:center;gap:6px">
-          <span style="flex:1">${s.minutes ? s.minutes+'分鐘' : ''} ${s.fromLesson !== undefined ? `第${s.fromLesson+1}堂` : ''} <span class="material-symbols-rounded" style="font-size:13px;vertical-align:middle">edit</span> <span class="material-symbols-rounded" style="font-size:15px;cursor:pointer;color:var(--accent5)" onclick="event.stopPropagation();confirmDelete('schedule','${s.id}')">delete</span> </span>
-          
+      return `<div class="event-item" style="border-left-color:${color};display:flex;align-items:center;gap:10px">
+        <div style="flex:1;min-width:0;cursor:pointer" onclick="openEditScheduleModal('${s.id}')">
+          <div class="event-time">${dateStr} ${s.time || ''}</div>
+          <div class="event-name">${c?.name || ''}</div>
+          <div class="event-meta">${s.minutes ? s.minutes+'分鐘' : ''} ${s.fromLesson !== undefined ? `第${s.fromLesson+1}堂` : ''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <span class="material-symbols-rounded" style="font-size:16px;color:var(--text3);cursor:pointer" onclick="openEditScheduleModal('${s.id}')">edit</span>
+          <span class="material-symbols-rounded" style="font-size:16px;color:var(--accent5);cursor:pointer" onclick="confirmDelete('schedule','${s.id}')">delete</span>
         </div>
       </div>`;
     }).join('');
@@ -916,6 +919,7 @@
           <div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lessonName}</div>
           <div style="font-size:11px;color:var(--text3);margin-top:2px">${progressStr}${last.note && last.note !== '自動補登' ? ` · ${last.note}` : ''}</div>
         </div>
+        <span class="material-symbols-rounded" style="font-size:16px;color:var(--text3);cursor:pointer;flex-shrink:0" onclick="openEditRecordModal('${c.id}','${last.id}')">edit</span>
       </div>`;
     }).filter(Boolean).join('');
     el.innerHTML = items || '<div style="font-size:13px;color:var(--text3);padding:8px">尚無上課紀錄</div>';
@@ -994,8 +998,11 @@
           <div class="lesson-meta">${c.name}${durStr?' · '+durStr:''} · ${statusText}</div>
         </div>
         <div class="lesson-actions">
-          ${!rec ? `<button class="btn btn-ghost btn-sm" onclick="openRecordModal('${c.id}',${idx})">記錄</button>` :
-                  `<button class="btn btn-danger btn-sm" onclick="confirmDelete('record','${rec.id}')">刪除</button>`}
+        ${!rec ? `<button class="btn btn-ghost btn-sm" onclick="openRecordModal('${c.id}',${idx})">記錄</button>` :
+         `<span style="display:flex;gap:7px">
+            <button class="btn btn-ghost btn-sm" onclick="openEditRecordModal('${c.id}','${rec.id}')">編輯</button>
+            <button class="btn btn-danger btn-sm" onclick="confirmDelete('record','${rec.id}')">刪除</button>
+          </span>`}
         </div>
       </div>`;
     }).join('');
@@ -1044,6 +1051,7 @@
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <span class="schedule-status ${isCompleted?'status-completed':'status-scheduled'}">${isCompleted?'完成':'排定'}</span>
+          ${!isCompleted ? `<button class="btn btn-ghost btn-sm" onclick="openEditScheduleModal('${s.id}')">編輯</button>` : ''}
           ${!isCompleted ? `<button class="btn btn-ghost btn-sm" onclick="markScheduleComplete('${s.id}')">完成</button>` : ''}
           <button class="btn btn-danger btn-sm" onclick="confirmDelete('schedule','${s.id}')">刪除</button>
         </div>
@@ -1157,6 +1165,31 @@
     
     if (!courseId || isNaN(lessonIndex) || !date) { showToast('請填寫所有必要欄位', 'error'); return; }
 
+    const editId = document.getElementById('modal-record').dataset.editId;
+    if (editId) {
+      // 編輯模式：直接更新
+      const recStatus = document.getElementById('rec-status').value;
+      const partialHr  = parseInt(document.getElementById('rec-partial-hr').value)  || 0;
+      const partialMin = parseInt(document.getElementById('rec-partial-min').value) || 0;
+      const partialSec = parseInt(document.getElementById('rec-partial-sec').value) || 0;
+      const updateData = {
+        courseId, lessonIndex, date,
+        note: document.getElementById('rec-note').value,
+        status: recStatus,
+        partialAt: recStatus === 'partial' ? partialHr * 3600 + partialMin * 60 + partialSec : null
+      };
+      try {
+        await updateDoc(doc(db, 'records', editId), updateData);
+        const idx = state.records.findIndex(r => r.id === editId);
+        if (idx !== -1) state.records[idx] = { ...state.records[idx], ...updateData };
+        showToast('已更新記錄', 'success');
+      } catch(e) { showToast('更新失敗', 'error'); }
+      delete document.getElementById('modal-record').dataset.editId;
+      closeModal('modal-record');
+      renderAll();
+      return;
+    }
+
     // Remove existing record for same lesson
     const existing = state.records.find(r => r.courseId === courseId && r.lessonIndex === lessonIndex);
     if (existing) { await deleteItem('record', existing.id); }
@@ -1244,7 +1277,11 @@
   };
 
   // ==================== Utils ====================
-  window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); };
+  window.closeModal = function(id) {
+    const el = document.getElementById(id);
+    el.classList.remove('open');
+    delete el.dataset.editId;
+  };
   window.markScheduleComplete = markScheduleComplete;
   window.deleteItem = deleteItem;
   window.openRecordModal = openRecordModal;
@@ -1270,6 +1307,33 @@
       closeModal('modal-confirm');
       await deleteItem(type, id);
     };
+  };
+
+
+  window.openEditRecordModal = function(courseId, recordId) {
+    const rec = state.records.find(r => r.id === recordId);
+    if (!rec) return;
+
+    document.getElementById('rec-course').innerHTML = COURSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('rec-course').value = courseId;
+    updateRecLessonOptions(courseId, rec.lessonIndex);
+    document.getElementById('rec-lesson').value = rec.lessonIndex;
+    document.getElementById('rec-date').value = rec.date || '';
+    document.getElementById('rec-note').value = rec.note && rec.note !== '自動補登' ? rec.note : '';
+    document.getElementById('rec-status').value = rec.status || 'done';
+
+    if (rec.status === 'partial' && rec.partialAt != null) {
+      document.getElementById('rec-partial-row').style.display = 'grid';
+      document.getElementById('rec-partial-hr').value  = Math.floor(rec.partialAt / 3600);
+      document.getElementById('rec-partial-min').value = Math.floor((rec.partialAt % 3600) / 60);
+      document.getElementById('rec-partial-sec').value = rec.partialAt % 60;
+    } else {
+      document.getElementById('rec-partial-row').style.display = 'none';
+    }
+
+    // 暫存編輯中的 record id，讓 save-record 知道是編輯模式
+    document.getElementById('modal-record').dataset.editId = recordId;
+    document.getElementById('modal-record').classList.add('open');
   };
 
   // Schedule filter buttons
