@@ -1197,7 +1197,8 @@
     // 自動補登前面所有未完成的課程
     for (let i = 0; i < lessonIndex; i++) {
       const alreadyDone = state.records.find(r => r.courseId === courseId && r.lessonIndex === i);
-      if (!alreadyDone) {
+      if (!alreadyDone || alreadyDone.status === 'partial') {
+        if (alreadyDone) { await deleteItem('record', alreadyDone.id); }
         await saveRecord({ courseId, lessonIndex: i, date, time, note: '自動補登', status: 'done', partialAt: null });
       }
     }
