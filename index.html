@@ -894,7 +894,7 @@
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:600;color:${color};margin-bottom:2px">${c.name}</div>
           <div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lessonName}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">${progressStr}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${progressStr}${last.note && last.note !== '自動補登' ? ` · ${last.note}` : ''}</div>
         </div>
       </div>`;
     }).filter(Boolean).join('');
