@@ -595,6 +595,23 @@
   </div>
 </div>
 
+<!-- Confirm Modal -->
+<div id="modal-confirm" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-confirm')">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <div class="modal-title">確認刪除</div>
+      <button class="modal-close" onclick="closeModal('modal-confirm')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:14px;color:var(--text2)">確定要刪除嗎？此操作無法復原。</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-confirm')">取消</button>
+      <button class="btn btn-danger" id="confirm-delete-btn">確認刪除</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
@@ -868,7 +885,10 @@
       return `<div class="event-item" style="border-left-color:${color};cursor:pointer" onclick="openEditScheduleModal('${s.id}')">
         <div class="event-time">${dateStr} ${s.time || ''}</div>
         <div class="event-name">${c?.name || ''}</div>
-        <div class="event-meta">${s.minutes ? s.minutes+'分鐘' : ''} ${s.fromLesson !== undefined ? `第${s.fromLesson+1}堂` : ''} <span class="material-symbols-rounded" style="font-size:13px;vertical-align:middle">edit</span></div>
+        <div class="event-meta" style="display:flex;align-items:center;gap:6px">
+          <span style="flex:1">${s.minutes ? s.minutes+'分鐘' : ''} ${s.fromLesson !== undefined ? `第${s.fromLesson+1}堂` : ''} <span class="material-symbols-rounded" style="font-size:13px;vertical-align:middle">edit</span> <span class="material-symbols-rounded" style="font-size:15px;cursor:pointer;color:var(--accent5)" onclick="event.stopPropagation();confirmDelete('schedule','${s.id}')">delete</span> </span>
+          
+        </div>
       </div>`;
     }).join('');
   }
@@ -975,7 +995,7 @@
         </div>
         <div class="lesson-actions">
           ${!rec ? `<button class="btn btn-ghost btn-sm" onclick="openRecordModal('${c.id}',${idx})">記錄</button>` :
-                  `<button class="btn btn-danger btn-sm" onclick="deleteItem('record','${rec.id}')">刪除</button>`}
+                  `<button class="btn btn-danger btn-sm" onclick="confirmDelete('record','${rec.id}')">刪除</button>`}
         </div>
       </div>`;
     }).join('');
@@ -1025,7 +1045,7 @@
         <div style="display:flex;gap:8px;align-items:center">
           <span class="schedule-status ${isCompleted?'status-completed':'status-scheduled'}">${isCompleted?'完成':'排定'}</span>
           ${!isCompleted ? `<button class="btn btn-ghost btn-sm" onclick="markScheduleComplete('${s.id}')">完成</button>` : ''}
-          <button class="btn btn-danger btn-sm" onclick="deleteItem('schedule','${s.id}')">刪除</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('schedule','${s.id}')">刪除</button>
         </div>
       </div>`;
     }).join('');
@@ -1078,7 +1098,7 @@
             <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openEditScheduleModal('${e.id}')" title="編輯">
               <span class="material-symbols-rounded" style="font-size:14px">edit</span>
             </button>
-            <button class="btn btn-danger btn-sm" onclick="deleteItem('schedule','${e.id}');closeModal('modal-day')" title="刪除">
+            <button class="btn btn-danger btn-sm" onclick="closeModal('modal-day');confirmDelete('schedule','${e.id}')" title="刪除">
               <span class="material-symbols-rounded" style="font-size:14px">delete</span>
             </button>
           </span>`
@@ -1243,6 +1263,14 @@
     setTimeout(() => t.className = 'toast', 2800);
   }
   window.showToast = showToast;
+
+  window.confirmDelete = function(type, id) {
+    document.getElementById('modal-confirm').classList.add('open');
+    document.getElementById('confirm-delete-btn').onclick = async function() {
+      closeModal('modal-confirm');
+      await deleteItem(type, id);
+    };
+  };
 
   // Schedule filter buttons
   window.setScheduleFilter = function(f) {
